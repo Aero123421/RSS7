@@ -17,20 +17,21 @@ logger = logging.getLogger(__name__)
 
 class GeminiAPI:
     """Google Gemini API連携クラス"""
-    
-    def __init__(self, api_key: str = None):
+
+    def __init__(self, api_key: str = None, model: str = "gemini-1.5-pro"):
         """
         初期化
-        
+
         Args:
             api_key: Google Gemini API Key（指定がない場合は環境変数から取得）
+            model: 使用するモデル名
         """
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
         if not self.api_key:
             logger.warning("Gemini API Keyが設定されていません")
-        
+
         self.api_url = "https://generativelanguage.googleapis.com/v1beta/models"
-        self.model = "gemini-1.5-pro"
+        self.model = model
         self.session = None
         
         logger.info("Google Gemini APIを初期化しました")

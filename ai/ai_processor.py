@@ -12,7 +12,6 @@ from typing import Dict, Any, Optional, List
 
 from .lmstudio_api import LMStudioAPI
 from .gemini_api import GeminiAPI
-from .translator import Translator
 from .summarizer import Summarizer
 from .classifier import Classifier
 
@@ -30,25 +29,19 @@ class AIProcessor:
         """
         self.config = config
         
-        # AIプロバイダの選択
-        ai_provider = config.get("ai_provider", "lmstudio")
-        
-        if ai_provider == "lmstudio":
-            api_url = config.get("lmstudio_api_url", "http://localhost:1234/v1")
-            self.api = LMStudioAPI(api_url)
-            logger.info(f"LM Studio APIを使用します: {api_url}")
-        elif ai_provider == "gemini":
+        # モデルの選択
+        ai_model = config.get("ai_model", "lmstudio")
+
+        if ai_model.startswith("gemini"):
             api_key = config.get("gemini_api_key", "")
-            self.api = GeminiAPI(api_key)
-            logger.info("Google Gemini APIを使用します")
+            self.api = GeminiAPI(api_key, model=ai_model)
+            logger.info(f"Google Gemini APIを使用します: {ai_model}")
         else:
-            # デフォルトはLM Studio
             api_url = config.get("lmstudio_api_url", "http://localhost:1234/v1")
-            self.api = LMStudioAPI(api_url)
-            logger.info(f"不明なプロバイダ '{ai_provider}' が指定されました。LM Studio APIを使用します: {api_url}")
+            self.api = LMStudioAPI(api_url, model=ai_model)
+            logger.info(f"LM Studio APIを使用します: {api_url} ({ai_model})")
         
         # 各処理クラスの初期化
-        self.translator = Translator(self.api)
         self.summarizer = Summarizer(self.api)
         self.classifier = Classifier(self.api)
         
@@ -68,13 +61,9 @@ class AIProcessor:
         processed = article.copy()
         
         try:
-            # 翻訳
-            if self.config.get("translate", True):
-                processed = await self._translate_article(processed)
-            
-            # 要約
+            # 要約（翻訳を兼ねる）
             if self.config.get("summarize", True):
-                processed = await self._summarize_article(processed)
+                processed = await self._summarize_article(processed, feed_info)
             
             # ジャンル分類
             if self.config.get("classify", False):
@@ -93,41 +82,7 @@ class AIProcessor:
             processed["ai_error"] = str(e)
             return processed
     
-    async def _translate_article(self, article: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        記事を翻訳する
-        
-        Args:
-            article: 記事データ
-            
-        Returns:
-            翻訳済み記事データ
-        """
-        try:
-            # タイトルの翻訳
-            original_title = article.get("title", "")
-            translated_title = await self.translator.translate(original_title)
-            
-            # 内容の翻訳
-            original_content = article.get("content", "")
-            translated_content = await self.translator.translate(original_content)
-            
-            # 翻訳結果を記事に追加
-            article["original_title"] = original_title
-            article["title"] = translated_title
-            article["original_content"] = original_content
-            article["content"] = translated_content
-            article["translated"] = True
-            
-            logger.info(f"記事を翻訳しました: {original_title}")
-            return article
-            
-        except Exception as e:
-            logger.error(f"記事翻訳中にエラーが発生しました: {article.get('title')}: {e}", exc_info=True)
-            article["translated"] = False
-            return article
-    
-    async def _summarize_article(self, article: Dict[str, Any]) -> Dict[str, Any]:
+    async def _summarize_article(self, article: Dict[str, Any], feed_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         記事を要約する
         
@@ -143,6 +98,11 @@ class AIProcessor:
             
             # 要約の最大文字数
             max_length = self.config.get("summary_length", 200)
+            summary_type = feed_info.get("summary_type")
+            if summary_type == "short":
+                max_length = 100
+            elif summary_type == "long":
+                max_length = 400
             
             # 要約の生成
             summary = await self.summarizer.summarize(content, max_length)

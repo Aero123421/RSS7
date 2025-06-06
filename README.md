@@ -25,7 +25,7 @@ Discord RSS Botは、RSS/atomフィードを監視し、新規記事をAIで処�
   - ジャンルベースのチャンネル振り分け
   - スラッシュコマンドによる操作
     - `/rss_config` - 設定パネル表示
-    - `/rss_check_now` - 即時フィード確認
+    - `/rss_check_now` - 現在のチャンネルの最新記事を取得
     - `/rss_list_feeds` - フィード一覧表示
     - `/addrss` - RSS,atomのURL新規追加
     - `/rss_list_channels` - チャンネル一覧表示

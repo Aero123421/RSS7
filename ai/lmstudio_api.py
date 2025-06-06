@@ -17,15 +17,17 @@ logger = logging.getLogger(__name__)
 
 class LMStudioAPI:
     """LM Studio API連携クラス"""
-    
-    def __init__(self, api_url: str = None):
+
+    def __init__(self, api_url: str = None, model: str = "local-model"):
         """
         初期化
-        
+
         Args:
             api_url: LM Studio API URL（指定がない場合は環境変数から取得）
+            model: 使用するモデル名
         """
         self.api_url = api_url or os.environ.get("LMSTUDIO_API_URL", "http://localhost:1234/v1")
+        self.model = model
         self.session = None
         
         logger.info(f"LM Studio APIを初期化しました: {self.api_url}")
@@ -58,7 +60,7 @@ class LMStudioAPI:
         try:
             # リクエストデータの作成
             data = {
-                "model": "local-model",  # LM Studioではモデル名は任意
+                "model": self.model,
                 "messages": [
                     {"role": "user", "content": prompt}
                 ],
