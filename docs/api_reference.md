@@ -32,8 +32,7 @@ discord_rss_bot/
 │   ├── ai_processor.py     # AIプロセッサー基底クラス
 │   ├── lmstudio_api.py     # LM Studio API連携
 │   ├── gemini_api.py       # Google Gemini API連携
-│   ├── translator.py       # 翻訳機能
-│   ├── summarizer.py       # 要約機能
+│   ├── summarizer.py       # 要約機能（翻訳を兼ねる）
 │   └── classifier.py       # ジャンル分類機能
 ├── discord_bot/            # Discord連携モジュール
 │   ├── __init__.py
@@ -171,10 +170,7 @@ from ai.ai_processor import AIProcessor
 # 初期化（抽象クラスなので直接インスタンス化はしない）
 # processor = AIProcessor(config)
 
-# 翻訳
-# translated_text = await processor.translate(text, target_lang="ja")
-
-# 要約
+# 要約（自動翻訳を含む）
 # summary = await processor.summarize(text, max_length=200)
 
 # ジャンル分類
@@ -191,10 +187,7 @@ from ai.lmstudio_api import LMStudioAPI
 # 初期化
 processor = LMStudioAPI(config)
 
-# 翻訳
-translated_text = await processor.translate(text, target_lang="ja")
-
-# 要約
+# 要約（自動翻訳を含む）
 summary = await processor.summarize(text, max_length=200)
 
 # ジャンル分類
@@ -203,39 +196,20 @@ category = await processor.classify(text)
 
 ### GeminiAPI
 
-Google Gemini APIを使用したAIプロセッサーです。
+Google Gemini APIを使用したAIプロセッサーです。内部では
+`google-generativeai` ライブラリを利用します。
 
 ```python
 from ai.gemini_api import GeminiAPI
 
 # 初期化
-processor = GeminiAPI(config)
+processor = GeminiAPI(api_key="YOUR_API_KEY", model="gemini-1.5-pro")
 
-# 翻訳
-translated_text = await processor.translate(text, target_lang="ja")
-
-# 要約
+# 要約（自動翻訳を含む）
 summary = await processor.summarize(text, max_length=200)
 
 # ジャンル分類
 category = await processor.classify(text)
-```
-
-### Translator
-
-翻訳機能を提供するクラスです。
-
-```python
-from ai.translator import Translator
-
-# 初期化
-translator = Translator(ai_processor)
-
-# 翻訳
-translated_text = await translator.translate(text, target_lang="ja")
-
-# 日本語判定
-is_japanese = translator.is_japanese(text)
 ```
 
 ### Summarizer

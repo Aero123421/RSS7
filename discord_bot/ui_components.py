@@ -40,22 +40,6 @@ class ConfigView(ui.View):
         if guild:
             self.add_item(DiscordCategorySelect(config, guild))
     
-    @ui.button(label="翻訳設定", style=discord.ButtonStyle.primary, custom_id="translate_toggle")
-    async def translate_toggle(self, interaction: discord.Interaction, button: ui.Button):
-        """翻訳設定ボタン"""
-        # 現在の設定を反転
-        current = self.config.get("translate", True)
-        self.config["translate"] = not current
-        
-        # 設定を保存
-        self.config_manager.update_config(self.config)
-        
-        # ボタンのラベルを更新
-        button.label = f"翻訳: {'有効' if self.config['translate'] else '無効'}"
-        
-        # 応答を送信
-        await interaction.response.edit_message(view=self)
-    
     @ui.button(label="要約設定", style=discord.ButtonStyle.primary, custom_id="summarize_toggle")
     async def summarize_toggle(self, interaction: discord.Interaction, button: ui.Button):
         """要約設定ボタン"""

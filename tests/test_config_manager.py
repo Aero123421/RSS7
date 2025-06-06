@@ -85,8 +85,7 @@ class TestConfigManager(unittest.TestCase):
         
         # 設定の更新
         update_config = {
-            "check_interval": 15,
-            "translate": False
+            "check_interval": 15
         }
         
         result = config_manager.update_config(update_config)
@@ -94,7 +93,6 @@ class TestConfigManager(unittest.TestCase):
         
         # 更新された内容を確認
         self.assertEqual(config_manager.config.get("check_interval"), 15)
-        self.assertEqual(config_manager.config.get("translate"), False)
         self.assertEqual(config_manager.config.get("discord_token"), self.test_config.get("discord_token"))
     
     def test_validate_and_update_config(self):

@@ -10,7 +10,6 @@ AIモジュール
 from .ai_processor import AIProcessor
 from .lmstudio_api import LMStudioAPI
 from .gemini_api import GeminiAPI
-from .translator import Translator
 from .summarizer import Summarizer
 from .classifier import Classifier
 
@@ -18,7 +17,6 @@ __all__ = [
     "AIProcessor",
     "LMStudioAPI",
     "GeminiAPI",
-    "Translator",
     "Summarizer",
     "Classifier"
 ]

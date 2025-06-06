@@ -2,7 +2,7 @@
 
 ## 1. システム概要
 
-このシステムは、RSS/atomフィードを定期的に監視し、新しい記事をAIで処理（翻訳・要約・分類）した後、Discordの適切なチャンネルに投稿するボットです。
+このシステムは、RSS/atomフィードを定期的に監視し、新しい記事をAIで処理（要約・分類）した後、Discordの適切なチャンネルに投稿するボットです。要約は自動的に日本語に翻訳されます。
 
 ## 2. システムコンポーネント
 
@@ -17,8 +17,8 @@
 2. **AIプロセッサー**
    - LM Studio API連携
    - Google Gemini API連携
-   - 記事の翻訳処理
    - 記事の要約生成
+   - 記事の要約生成（自動翻訳）
    - 記事のジャンル分類
 
 3. **Discordボット**
@@ -58,8 +58,7 @@
 
 2. **AI処理フロー**
    - 記事を受け取り
-   - 設定に基づいて翻訳を実行
-   - 設定に基づいて要約を生成
+   - 設定に基づいて要約を生成（自動翻訳）
    - 必要に応じてジャンル分類を実行
    - 処理結果をDiscordボットに送信
 
@@ -91,8 +90,7 @@ discord_rss_bot/
 │   ├── ai_processor.py    # AI処理基底クラス
 │   ├── lmstudio_api.py    # LM Studio API連携
 │   ├── gemini_api.py      # Google Gemini API連携
-│   ├── translator.py      # 翻訳機能
-│   ├── summarizer.py      # 要約機能
+│   ├── summarizer.py      # 要約機能（自動翻訳）
 │   └── classifier.py      # 分類機能
 ├── discord_bot/
 │   ├── bot_client.py      # Discordクライアント
