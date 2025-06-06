@@ -11,6 +11,7 @@ import os
 import logging
 import json
 import aiohttp
+from aiohttp import ClientConnectorError
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -29,14 +30,6 @@ class LMStudioAPI:
         default_url = "http://localhost:1234/v1"
         env_url = os.environ.get("LMSTUDIO_API_URL")
         self.api_url = api_url or env_url or default_url
-        # Dockerコンテナ内で実行しており、API URLがデフォルトのままの場合は
-        # コンテナ名を用いたURLに自動的に切り替える
-        if self.api_url == default_url and os.path.exists("/.dockerenv"):
-            docker_url = "http://lmstudio-api:1234/v1"
-            logger.info(
-                "Docker環境を検知しました。LM Studio API URLを %s に設定します", docker_url
-            )
-            self.api_url = docker_url
         self.model = model
         self.session = None
         
@@ -96,8 +89,15 @@ class LMStudioAPI:
                     logger.warning(f"APIレスポンスに有効な結果がありません: {result}")
                     return ""
                 
+        except ClientConnectorError as e:
+            logger.error(
+                "LM Studio APIに接続できませんでした。URL=%s: %s", self.api_url, e
+            )
+            raise
         except Exception as e:
-            logger.error(f"テキスト生成中にエラーが発生しました: {e}", exc_info=True)
+            logger.error(
+                f"テキスト生成中にエラーが発生しました: {e}", exc_info=True
+            )
             raise
     
     async def close(self):
