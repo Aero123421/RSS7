@@ -62,11 +62,10 @@ class Summarizer:
                 summary = summary[:max_length - 3] + "..."
             
             return summary
-            
+
         except Exception as e:
             logger.error(f"要約中にエラーが発生しました: {e}", exc_info=True)
-            # エラーの場合は元のテキストを切り詰めて返す
-            return text[:max_length - 3] + "..."
+            raise
 
 # テスト用コード
 async def test_summarizer():
