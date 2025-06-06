@@ -22,6 +22,7 @@ DEFAULT_CONFIG = {
     
     # AI設定
     "ai_provider": "lmstudio",  # AIプロバイダ（lmstudio or gemini）
+    "fallback_ai_provider": "gemini",  # 予備のAIプロバイダ
     "lmstudio_api_url": "http://localhost:1234/v1",  # LM Studio API URL
     "gemini_api_key": "",  # Google Gemini API Key
     "ai_model": "lmstudio",  # 使用するAIモデル

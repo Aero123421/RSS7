@@ -65,7 +65,8 @@ config = config_manager.load_config()
 # 設定の更新
 config_manager.update_config({
     "check_interval": 30,
-    "ai_provider": "gemini"
+    "ai_provider": "gemini",
+    "fallback_ai_provider": "gemini"
 })
 
 # 設定の保存

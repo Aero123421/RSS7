@@ -151,6 +151,7 @@ Discord RSS Botは、記事情報を視覚的に表示するためにエンベ�
 ```json
 {
   "ai_provider": "gemini",
+  "fallback_ai_provider": "gemini",
   "lmstudio_api_url": "http://localhost:1234/v1",
   "gemini_api_key": "your_gemini_api_key"
 }

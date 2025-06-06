@@ -32,7 +32,8 @@ class TestConfigManager(unittest.TestCase):
         self.test_config = {
             "discord_token": "test_token",
             "check_interval": 30,
-            "ai_provider": "gemini"
+            "ai_provider": "gemini",
+            "fallback_ai_provider": "gemini"
         }
     
     def tearDown(self):
@@ -49,6 +50,10 @@ class TestConfigManager(unittest.TestCase):
         # デフォルト設定が読み込まれるか確認
         self.assertEqual(config.get("check_interval"), DEFAULT_CONFIG.get("check_interval"))
         self.assertEqual(config.get("ai_provider"), DEFAULT_CONFIG.get("ai_provider"))
+        self.assertEqual(
+            config.get("fallback_ai_provider"),
+            DEFAULT_CONFIG.get("fallback_ai_provider"),
+        )
     
     def test_save_and_load_config(self):
         """設定の保存と読み込みテスト"""
@@ -112,6 +117,10 @@ class TestConfigManager(unittest.TestCase):
         # デフォルト値が追加されたか確認
         self.assertEqual(config_manager.config.get("check_interval"), DEFAULT_CONFIG.get("check_interval"))
         self.assertEqual(config_manager.config.get("ai_provider"), DEFAULT_CONFIG.get("ai_provider"))
+        self.assertEqual(
+            config_manager.config.get("fallback_ai_provider"),
+            DEFAULT_CONFIG.get("fallback_ai_provider"),
+        )
         self.assertEqual(config_manager.config.get("discord_token"), "test_token")
 
 if __name__ == "__main__":
