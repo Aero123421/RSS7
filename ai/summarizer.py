@@ -8,14 +8,19 @@
 """
 
 import logging
+import re
 from typing import Dict, Any, Optional
+
+from .gemini_api import GeminiAPI
+
+from .simple_summarizer import simple_summarize
 
 logger = logging.getLogger(__name__)
 
 class Summarizer:
     """要約クラス"""
     
-    def __init__(self, api):
+    def __init__(self, api, system_instruction: Optional[str] = None):
         """
         初期化
         
@@ -23,6 +28,9 @@ class Summarizer:
             api: APIインスタンス（LMStudioAPIまたはGeminiAPI）
         """
         self.api = api
+        self.system_instruction = system_instruction or (
+            "あなたは優秀な翻訳者かつ要約者です。与えられたテキストを日本語で要約してください。"
+        )
         logger.info("要約機能を初期化しました")
     
     async def summarize(self, text: str, max_length: int = 200) -> str:
@@ -49,7 +57,15 @@ class Summarizer:
             )
             
             # APIを使用して要約
-            summary = await self.api.generate_text(prompt, max_tokens=1000, temperature=0.3)
+            if isinstance(self.api, GeminiAPI):
+                summary = await self.api.generate_text(
+                    prompt,
+                    max_tokens=1000,
+                    temperature=0.3,
+                    system_instruction=self.system_instruction,
+                )
+            else:
+                summary = await self.api.generate_text(prompt, max_tokens=1000, temperature=0.3)
             
             # 余計なプレフィックスを削除
             prefixes = ["要約:", "要約結果:"]
@@ -65,7 +81,8 @@ class Summarizer:
 
         except Exception as e:
             logger.error(f"要約中にエラーが発生しました: {e}", exc_info=True)
-            raise
+            logger.info("外部APIが利用できないため、簡易要約にフォールバックします")
+            return simple_summarize(text, max_length)
 
 # テスト用コード
 async def test_summarizer():

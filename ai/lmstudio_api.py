@@ -26,7 +26,17 @@ class LMStudioAPI:
             api_url: LM Studio API URL（指定がない場合は環境変数から取得）
             model: 使用するモデル名
         """
-        self.api_url = api_url or os.environ.get("LMSTUDIO_API_URL", "http://localhost:1234/v1")
+        default_url = "http://localhost:1234/v1"
+        env_url = os.environ.get("LMSTUDIO_API_URL")
+        self.api_url = api_url or env_url or default_url
+        # Dockerコンテナ内で実行しており、API URLがデフォルトのままの場合は
+        # コンテナ名を用いたURLに自動的に切り替える
+        if self.api_url == default_url and os.path.exists("/.dockerenv"):
+            docker_url = "http://lmstudio-api:1234/v1"
+            logger.info(
+                "Docker環境を検知しました。LM Studio API URLを %s に設定します", docker_url
+            )
+            self.api_url = docker_url
         self.model = model
         self.session = None
         
