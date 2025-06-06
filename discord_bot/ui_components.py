@@ -126,7 +126,13 @@ class AIModelSelect(ui.Select):
     async def callback(self, interaction: discord.Interaction):
         """選択時のコールバック"""
         # 選択された値を設定に反映
-        self.config["ai_model"] = self.values[0]
+        selected = self.values[0]
+        self.config["ai_model"] = selected
+        # ai_provider もモデルに合わせて自動設定
+        if selected.startswith("gemini"):
+            self.config["ai_provider"] = "gemini"
+        else:
+            self.config["ai_provider"] = "lmstudio"
 
         # 設定を保存
         from config.config_manager import ConfigManager
@@ -143,7 +149,7 @@ class AIModelSelect(ui.Select):
 
         # 応答を送信
         await interaction.response.send_message(
-            f"AIプロバイダを「{self.values[0]}」に設定しました。",
+            f"AIモデルを「{selected}」に設定しました。",
             ephemeral=True
         )
 
