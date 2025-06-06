@@ -39,20 +39,14 @@ class Summarizer:
         if not text:
             return ""
         
-        # テキストが既に十分短い場合はそのまま返す
-        if len(text) <= max_length:
-            return text
-        
         try:
-            # 要約プロンプトの作成
-            prompt = f"""
-あなたは翻訳と要約の専門家です。以下のテキストを日本語で{max_length}文字以内に要約してください。要約のみを出力してください。
-
-テキスト:
-{text}
-
-要約:
-"""
+            # 要約および翻訳プロンプトの作成
+            prompt = (
+                f"あなたは翻訳と要約の専門家です。以下のテキストを日本語で要約してください。"
+                f"出力は必ず{max_length}文字以内に収め、絶対に超えないでください。"
+                "要約以外の説明は不要です。\n\n"
+                f"テキスト:\n{text}\n\n要約:"
+            )
             
             # APIを使用して要約
             summary = await self.api.generate_text(prompt, max_tokens=1000, temperature=0.3)

@@ -68,7 +68,6 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 name="現在の設定",
                 value=f"AIモデル: {config.get('ai_model', 'lmstudio')}\n"
                       f"確認間隔: {config.get('check_interval', 15)}分\n"
-                      f"翻訳: {'有効' if config.get('translate', True) else '無効'}\n"
                       f"要約: {'有効' if config.get('summarize', True) else '無効'}\n"
                       f"ジャンル分類: {'有効' if config.get('classify', False) else '無効'}",
                 inline=False
@@ -279,7 +278,6 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
             embed.add_field(name="確認間隔", value=f"{config.get('check_interval', 15)}分", inline=True)
             embed.add_field(name="フィード確認中", value="はい" if checking else "いいえ", inline=True)
             embed.add_field(name="AIモデル", value=config.get("ai_model", "lmstudio"), inline=True)
-            embed.add_field(name="翻訳", value="有効" if config.get("translate", True) else "無効", inline=True)
             embed.add_field(name="要約", value="有効" if config.get("summarize", True) else "無効", inline=True)
             
             # 最終更新日時

@@ -50,7 +50,6 @@ class MessageBuilder:
             feed_title = article.get("feed_title", "")
             
             # AI処理結果の取得
-            translated = article.get("translated", False)
             summarized = article.get("summarized", False)
             classified = article.get("classified", False)
             category = article.get("category", "other")
@@ -105,8 +104,6 @@ class MessageBuilder:
             
             # フッター
             ai_info = []
-            if translated:
-                ai_info.append("翻訳済み")
             if summarized:
                 ai_info.append("要約済み")
             if classified:

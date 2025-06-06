@@ -19,7 +19,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # AIモジュールのインポート
 from ai.lmstudio_api import LMStudioAPI
-from ai.translator import Translator
 from ai.summarizer import Summarizer
 from ai.classifier import Classifier
 
@@ -56,12 +55,6 @@ technical documentation describing the model's architecture and training methodo
 """
         }
         
-        print("=== 翻訳テスト ===")
-        translator = Translator(api)
-        translated_title = await translator.translate(article["title"])
-        print(f"原文タイトル: {article['title']}")
-        print(f"翻訳タイトル: {translated_title}")
-        print()
         
         print("=== 要約テスト ===")
         summarizer = Summarizer(api)

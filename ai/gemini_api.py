@@ -9,9 +9,10 @@ Google Gemini APIを使用してAI処理を行う
 
 import os
 import logging
-import json
-import aiohttp
-from typing import Dict, Any, List, Optional
+from typing import Optional
+
+import google.generativeai as genai
+from google.generativeai.types import GenerationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -30,26 +31,22 @@ class GeminiAPI:
         if not self.api_key:
             logger.warning("Gemini API Keyが設定されていません")
 
-        self.api_url = "https://generativelanguage.googleapis.com/v1beta/models"
-        self.model = model
-        self.session = None
-        
+        genai.configure(api_key=self.api_key)
+
+        self.model_name = model if model.startswith("models/") else f"models/{model}"
+        self.model = genai.GenerativeModel(self.model_name)
+
         logger.info("Google Gemini APIを初期化しました")
     
-    async def _get_session(self) -> aiohttp.ClientSession:
-        """
-        HTTPセッションを取得する
-        
-        Returns:
-            aiohttp.ClientSession
-        """
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json"}
-            )
-        return self.session
-    
-    async def generate_text(self, prompt: str, max_tokens: int = 1000, temperature: float = 0.7) -> str:
+    async def generate_text(
+        self,
+        prompt: str,
+        max_tokens: int = 1000,
+        temperature: float = 0.7,
+        top_p: float = 0.95,
+        top_k: int = 40,
+        system_instruction: Optional[str] = None,
+    ) -> str:
         """
         テキストを生成する
         
@@ -65,52 +62,42 @@ class GeminiAPI:
             raise ValueError("Gemini API Keyが設定されていません")
         
         try:
-            # リクエストデータの作成
-            data = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": prompt}
-                        ]
-                    }
-                ],
-                "generationConfig": {
-                    "maxOutputTokens": max_tokens,
-                    "temperature": temperature
-                }
-            }
-            
-            # APIリクエスト
-            session = await self._get_session()
-            url = f"{self.api_url}/{self.model}:generateContent?key={self.api_key}"
-            
-            async with session.post(url, json=data) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    logger.error(f"API呼び出しエラー: {response.status}, {error_text}")
-                    raise Exception(f"API呼び出しエラー: {response.status}")
-                
-                result = await response.json()
-                
-                # レスポンスからテキストを抽出
-                if "candidates" in result and len(result["candidates"]) > 0:
-                    content = result["candidates"][0].get("content", {})
-                    parts = content.get("parts", [])
-                    if parts and "text" in parts[0]:
-                        return parts[0]["text"].strip()
-                
-                logger.warning(f"APIレスポンスに有効な結果がありません: {result}")
-                return ""
+            generation_config = GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                candidate_count=1,
+            )
+
+            model = self.model
+            if system_instruction:
+                model = genai.GenerativeModel(
+                    self.model_name,
+                    system_instruction=system_instruction,
+                    generation_config=generation_config,
+                )
+                generation_config = None
+
+            response = await model.generate_content_async(
+                prompt,
+                generation_config=generation_config,
+            )
+
+            if response.candidates:
+                text = response.candidates[0].content.parts[0].text
+                return text.strip() if text else ""
+
+            logger.warning(f"APIレスポンスに有効な結果がありません: {response}")
+            return ""
                 
         except Exception as e:
             logger.error(f"テキスト生成中にエラーが発生しました: {e}", exc_info=True)
             raise
     
     async def close(self):
-        """セッションを閉じる"""
-        if self.session and not self.session.closed:
-            await self.session.close()
-            logger.info("Google Gemini APIセッションを閉じました")
+        """互換性のために存在するダミーメソッド"""
+        logger.info("Google Gemini APIは特別なクローズ処理を必要としません")
 
 # テスト用コード
 async def test_gemini_api():
