@@ -11,7 +11,7 @@ from .bot_client import DiscordBot
 from .commands import register_commands, set_managers
 from .message_builder import MessageBuilder
 from .ui_components import (
-    ConfigView, AIProviderSelect, CheckIntervalSelect,
+    ConfigView, AIModelSelect, CheckIntervalSelect,
     CategorySettingsModal, FeedListView, FeedSelect,
     AddFeedModal, RemoveFeedModal, ChannelListView, ChannelSelect
 )
@@ -22,7 +22,7 @@ __all__ = [
     "set_managers",
     "MessageBuilder",
     "ConfigView",
-    "AIProviderSelect",
+    "AIModelSelect",
     "CheckIntervalSelect",
     "CategorySettingsModal",
     "FeedListView",
