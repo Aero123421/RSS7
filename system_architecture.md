@@ -94,7 +94,7 @@ discord_rss_bot/
 │   ├── translator.py      # 翻訳機能
 │   ├── summarizer.py      # 要約機能
 │   └── classifier.py      # 分類機能
-├── discord/
+├── discord_bot/
 │   ├── bot_client.py      # Discordクライアント
 │   ├── commands.py        # スラッシュコマンド
 │   ├── ui_components.py   # UI要素

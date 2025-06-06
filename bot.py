@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 
 # 内部モジュールのインポート
 from config.config_manager import ConfigManager
-from discord.bot_client import DiscordBot
-from discord.commands import set_managers
+from discord_bot.bot_client import DiscordBot
+from discord_bot.commands import set_managers
 from rss.feed_manager import FeedManager
 from ai.ai_processor import AIProcessor
 from utils.logger import setup_logger
