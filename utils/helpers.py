@@ -97,22 +97,6 @@ def clean_html(html_content: str) -> str:
     # 前後の空白を除去
     return text.strip()
 
-def truncate_text(text: str, max_length: int = 2000) -> str:
-    """
-    テキストを指定された長さに切り詰める
-    
-    Args:
-        text: 元のテキスト
-        max_length: 最大長
-        
-    Returns:
-        切り詰められたテキスト
-    """
-    if len(text) <= max_length:
-        return text
-    
-    # 最大長まで切り詰め、「...」を追加
-    return text[:max_length - 3] + "..."
 
 def get_channel_name_for_feed(feed_url: str, feed_title: str = None) -> str:
     """
@@ -157,20 +141,4 @@ def get_channel_name_for_feed(feed_url: str, feed_title: str = None) -> str:
             hash_str = hashlib.md5(feed_url.encode("utf-8")).hexdigest()[:8]
             return f"rss-feed-{hash_str}"
 
-def find_category_by_name(categories: List[Dict[str, str]], name: str) -> Optional[Dict[str, str]]:
-    """
-    名前からカテゴリを検索する
-    
-    Args:
-        categories: カテゴリリスト
-        name: カテゴリ名
-        
-    Returns:
-        カテゴリ辞書、見つからない場合はNone
-    """
-    name = name.lower()
-    for category in categories:
-        if category["name"].lower() == name:
-            return category
-    return None
 
