@@ -113,7 +113,9 @@ DISCORD_TOKEN=your_discord_token_here
 GEMINI_API_KEY=your_gemini_api_key_here
 
 # LM Studio API設定（LM Studioを使用する場合）
-# LMSTUDIO_API_URL=http://localhost:1234/v1
+# ローカル実行時は http://localhost:1234/v1
+# Docker 環境では http://lmstudio-api:1234/v1 を指定してください
+# LMSTUDIO_API_URL=http://lmstudio-api:1234/v1
 ```
 
 ### 設定ファイルの編集

@@ -27,8 +27,9 @@ DISCORD_TOKEN=your_discord_token_here
 # Google Gemini API設定（Gemini APIを使用する場合）
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# LM Studio API設定（Docker Composeの場合）
-LMSTUDIO_API_URL=http://lmstudio-api:1234/v1
+# LM Studio API設定（LM Studioを使用する場合）
+# LM Studio APIコンテナを起動する場合は、以下のURLを指定してください
+# LMSTUDIO_API_URL=http://lmstudio-api:1234/v1
 ```
 
 ### 2. データディレクトリの作成
