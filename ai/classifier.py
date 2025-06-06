@@ -54,12 +54,13 @@ class Classifier:
             # 分類プロンプトの作成
             categories_str = ", ".join(categories)
             prompt = f"""
-以下の記事を次のカテゴリのいずれかに分類してください: {categories_str}
+次の記事のジャンルを以下のカテゴリから最も適切なもの一つだけ選んでください:
+{categories_str}
 
 記事:
 {classification_text}
 
-回答は分類されたカテゴリ名のみを出力してください。余計な説明は不要です。
+出力は選んだカテゴリ名のみを英語で一語だけ返してください。余計な説明や句読点、改行は不要です。
 """
             
             # APIを使用して分類
