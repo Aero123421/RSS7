@@ -66,7 +66,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
             # 現在の設定を表示
             embed.add_field(
                 name="現在の設定",
-                value=f"AIプロバイダ: {config.get('ai_provider', 'lmstudio')}\n"
+                value=f"AIモデル: {config.get('ai_model', 'lmstudio')}\n"
                       f"確認間隔: {config.get('check_interval', 15)}分\n"
                       f"翻訳: {'有効' if config.get('translate', True) else '無効'}\n"
                       f"要約: {'有効' if config.get('summarize', True) else '無効'}\n"
@@ -75,7 +75,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
             )
             
             # 設定パネルの送信
-            view = ConfigView(config, config_manager)
+            view = ConfigView(config, config_manager, interaction.guild)
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
             
         except Exception as e:
@@ -85,41 +85,36 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 ephemeral=True
             )
     
-    @rss_group.command(name="check_now", description="すべてのフィードを今すぐ確認します")
-    @app_commands.checks.has_permissions(administrator=True)
+    @rss_group.command(name="check_now", description="このチャンネルの最新記事を取得します")
     async def rss_check_now(interaction: discord.Interaction):
-        """フィードを即時確認するコマンド"""
+        """チャンネルのフィードを1件取得して投稿する"""
         try:
-            # 管理者権限チェック
-            admin_ids = config.get("admin_ids", [])
-            if admin_ids and str(interaction.user.id) not in admin_ids:
+            channel_id = str(interaction.channel.id)
+            feed = next((f for f in feed_manager.get_feeds() if f.get("channel_id") == channel_id), None)
+            if not feed:
                 await interaction.response.send_message(
-                    "このコマンドを実行する権限がありません。サーバー管理者に連絡してください。",
+                    "このチャンネルにはフィードが登録されていません。",
                     ephemeral=True
                 )
                 return
-            
-            # 応答を送信
-            await interaction.response.send_message(
-                "フィードの確認を開始します...",
-                ephemeral=True
-            )
-            
-            # フィード確認を実行
-            await feed_manager.check_feeds()
-            
-            # 完了メッセージを送信
-            await interaction.followup.send(
-                "すべてのフィードの確認が完了しました。",
-                ephemeral=True
-            )
-            
+            await interaction.response.send_message("最新記事を取得しています...", ephemeral=True)
+            feed_data = await feed_manager.feed_parser.parse_feed(feed.get("url"))
+            if not feed_data or not feed_data.get("entries"):
+                await interaction.followup.send("記事を取得できませんでした。", ephemeral=True)
+                return
+            entry = feed_data["entries"][0]
+            entry["feed_title"] = feed_data.get("feed", {}).get("title", "")
+            entry["feed_url"] = feed.get("url")
+            processed = await feed_manager.ai_processor.process_article(entry, feed)
+            await feed_manager.discord_bot.post_article(processed, channel_id)
+            await interaction.followup.send("記事を投稿しました。", ephemeral=True)
         except Exception as e:
             logger.error(f"フィード確認中にエラーが発生しました: {e}", exc_info=True)
             await interaction.followup.send(
                 f"エラーが発生しました: {str(e)}",
                 ephemeral=True
             )
+
     
     @rss_group.command(name="list_feeds", description="登録されているフィードの一覧を表示します")
     async def rss_list_feeds(interaction: discord.Interaction):
@@ -158,9 +153,15 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
     @app_commands.command(name="addrss", description="RSSフィードを追加します")
     @app_commands.describe(
         url="RSSフィードのURL",
-        channel_name="チャンネル名（省略可）"
+        channel_name="チャンネル名（省略可）",
+        summary_length="要約の長さ"
     )
-    async def add_rss(interaction: discord.Interaction, url: str, channel_name: str = None):
+    @app_commands.choices(summary_length=[
+        app_commands.Choice(name="短め", value="short"),
+        app_commands.Choice(name="通常", value="normal"),
+        app_commands.Choice(name="長め", value="long")
+    ])
+    async def add_rss(interaction: discord.Interaction, url: str, channel_name: str = None, summary_length: str = "normal"):
         """RSSフィードを追加するコマンド"""
         try:
             # 応答を送信
@@ -170,7 +171,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
             )
             
             # フィードの追加
-            success, message, feed_info = await feed_manager.add_feed(url)
+            success, message, feed_info = await feed_manager.add_feed(url, summary_type=summary_length)
             
             if not success:
                 await interaction.followup.send(
@@ -277,7 +278,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
             embed.add_field(name="登録フィード数", value=str(feeds_count), inline=True)
             embed.add_field(name="確認間隔", value=f"{config.get('check_interval', 15)}分", inline=True)
             embed.add_field(name="フィード確認中", value="はい" if checking else "いいえ", inline=True)
-            embed.add_field(name="AIプロバイダ", value=config.get("ai_provider", "lmstudio"), inline=True)
+            embed.add_field(name="AIモデル", value=config.get("ai_model", "lmstudio"), inline=True)
             embed.add_field(name="翻訳", value="有効" if config.get("translate", True) else "無効", inline=True)
             embed.add_field(name="要約", value="有効" if config.get("summarize", True) else "無効", inline=True)
             

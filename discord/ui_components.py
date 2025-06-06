@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class ConfigView(ui.View):
     """設定パネルビュー"""
     
-    def __init__(self, config: Dict[str, Any], config_manager):
+    def __init__(self, config: Dict[str, Any], config_manager, guild: Optional[discord.Guild] = None):
         """
         初期化
         
@@ -30,12 +30,15 @@ class ConfigView(ui.View):
         super().__init__(timeout=300)  # 5分でタイムアウト
         self.config = config
         self.config_manager = config_manager
+        self.guild = guild
         
         # AIプロバイダ選択メニューの追加
-        self.add_item(AIProviderSelect(config))
+        self.add_item(AIModelSelect(config))
         
         # 確認間隔選択メニューの追加
         self.add_item(CheckIntervalSelect(config))
+        if guild:
+            self.add_item(DiscordCategorySelect(config, guild))
     
     @ui.button(label="翻訳設定", style=discord.ButtonStyle.primary, custom_id="translate_toggle")
     async def translate_toggle(self, interaction: discord.Interaction, button: ui.Button):
@@ -97,9 +100,9 @@ class ConfigView(ui.View):
         # メッセージを削除
         await interaction.response.edit_message(content="設定パネルを閉じました", view=None, embed=None)
 
-class AIProviderSelect(ui.Select):
-    """AIプロバイダ選択メニュー"""
-    
+class AIModelSelect(ui.Select):
+    """AIモデル選択メニュー"""
+
     def __init__(self, config: Dict[str, Any]):
         """
         初期化
@@ -110,34 +113,25 @@ class AIProviderSelect(ui.Select):
         self.config = config
         
         # 現在の設定を取得
-        current_provider = config.get("ai_provider", "lmstudio")
+        current_model = config.get("ai_model", "lmstudio")
         
         # オプションの作成
         options = [
-            discord.SelectOption(
-                label="LM Studio",
-                description="ローカルで動作するLLMを使用",
-                value="lmstudio",
-                default=current_provider == "lmstudio"
-            ),
-            discord.SelectOption(
-                label="Google Gemini",
-                description="Google Gemini APIを使用",
-                value="gemini",
-                default=current_provider == "gemini"
-            )
+            discord.SelectOption(label="Gemini 2.0 Flash", value="gemini-2.0-flash", default=current_model == "gemini-2.0-flash"),
+            discord.SelectOption(label="Gemini 2.5 Flash", value="gemini-2.5-flash-preview-05-20", default=current_model == "gemini-2.5-flash-preview-05-20"),
+            discord.SelectOption(label="LM Studio", value="lmstudio", default=current_model == "lmstudio")
         ]
         
         super().__init__(
-            placeholder="AIプロバイダを選択",
+            placeholder="使用モデルを選択",
             options=options,
-            custom_id="ai_provider_select"
+            custom_id="ai_model_select"
         )
     
     async def callback(self, interaction: discord.Interaction):
         """選択時のコールバック"""
         # 選択された値を設定に反映
-        self.config["ai_provider"] = self.values[0]
+        self.config["ai_model"] = self.values[0]
         
         # 設定を保存
         from config.config_manager import ConfigManager
@@ -212,6 +206,37 @@ class CheckIntervalSelect(ui.Select):
         # 応答を送信
         await interaction.response.send_message(
             f"確認間隔を「{self.values[0]}分」に設定しました。",
+            ephemeral=True
+        )
+
+class DiscordCategorySelect(ui.Select):
+    """Discordカテゴリ選択メニュー"""
+
+    def __init__(self, config: Dict[str, Any], guild: discord.Guild):
+        self.config = config
+        self.guild = guild
+
+        current_id = str(config.get("category_id")) if config.get("category_id") else None
+
+        options = []
+        for cat in guild.categories[:25]:
+            options.append(discord.SelectOption(label=cat.name, value=str(cat.id), default=str(cat.id) == current_id))
+
+        super().__init__(
+            placeholder="RSSチャンネルのカテゴリを選択",
+            options=options,
+            custom_id="discord_category_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.config["category_id"] = self.values[0]
+
+        from config.config_manager import ConfigManager
+        config_manager = ConfigManager()
+        config_manager.update_config(self.config)
+
+        await interaction.response.send_message(
+            f"カテゴリを更新しました: <#{self.values[0]}>",
             ephemeral=True
         )
 
@@ -419,6 +444,17 @@ class AddFeedModal(ui.Modal, title="フィード追加"):
             required=False
         )
         self.add_item(self.channel_input)
+
+        # 要約長さ選択
+        self.summary_select = ui.Select(
+            placeholder="要約の長さを選択",
+            options=[
+                discord.SelectOption(label="短め", value="short"),
+                discord.SelectOption(label="通常", value="normal", default=True),
+                discord.SelectOption(label="長め", value="long")
+            ]
+        )
+        self.add_item(self.summary_select)
     
     async def on_submit(self, interaction: discord.Interaction):
         """送信時のコールバック"""
@@ -430,7 +466,8 @@ class AddFeedModal(ui.Modal, title="フィード追加"):
         
         try:
             # フィードの追加
-            success, message, feed_info = await self.feed_manager.add_feed(self.url_input.value)
+            summary_type = self.summary_select.values[0]
+            success, message, feed_info = await self.feed_manager.add_feed(self.url_input.value, summary_type=summary_type)
             
             if not success:
                 await interaction.followup.send(
