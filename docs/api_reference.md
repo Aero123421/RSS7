@@ -35,7 +35,7 @@ discord_rss_bot/
 │   ├── translator.py       # 翻訳機能
 │   ├── summarizer.py       # 要約機能
 │   └── classifier.py       # ジャンル分類機能
-├── discord/                # Discord連携モジュール
+├── discord_bot/            # Discord連携モジュール
 │   ├── __init__.py
 │   ├── bot_client.py       # Discordボットクライアント
 │   ├── commands.py         # スラッシュコマンド
@@ -273,7 +273,7 @@ category = await classifier.classify(text)
 Discordボットクライアントを提供するクラスです。
 
 ```python
-from discord.bot_client import DiscordBot
+from discord_bot.bot_client import DiscordBot
 
 # 初期化
 bot = DiscordBot(config)
@@ -290,7 +290,7 @@ await bot.close()
 スラッシュコマンドを提供するモジュールです。
 
 ```python
-from discord.commands import register_commands, set_managers
+from discord_bot.commands import register_commands, set_managers
 
 # コマンドの登録
 register_commands(bot)
@@ -309,7 +309,7 @@ set_managers(
 UIコンポーネント（ボタン、セレクトメニューなど）を提供するモジュールです。
 
 ```python
-from discord.ui_components import ConfigView, FeedListView, ChannelListView
+from discord_bot.ui_components import ConfigView, FeedListView, ChannelListView
 
 # 設定ビューの作成
 config_view = ConfigView(config_manager)
@@ -326,7 +326,7 @@ channel_list_view = ChannelListView(bot, feed_manager)
 メッセージビルダーを提供するクラスです。
 
 ```python
-from discord.message_builder import MessageBuilder
+from discord_bot.message_builder import MessageBuilder
 
 # 初期化
 message_builder = MessageBuilder(config)
