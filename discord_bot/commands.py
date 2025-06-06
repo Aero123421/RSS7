@@ -74,7 +74,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
             )
             
             # 設定パネルの送信
-            view = ConfigView(config, config_manager, interaction.guild)
+            view = ConfigView(config, config_manager, feed_manager, interaction.guild)
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
             
         except Exception as e:

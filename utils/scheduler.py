@@ -45,35 +45,3 @@ def setup_scheduler(feed_manager: Any) -> AsyncIOScheduler:
     
     return scheduler
 
-def update_check_interval(scheduler: AsyncIOScheduler, feed_manager: Any, interval: int) -> bool:
-    """
-    フィード確認間隔を更新する
-    
-    Args:
-        scheduler: スケジューラーインスタンス
-        feed_manager: フィードマネージャーインスタンス
-        interval: 新しい確認間隔（分）
-        
-    Returns:
-        更新成功の場合はTrue、失敗の場合はFalse
-    """
-    try:
-        # 既存のジョブを削除
-        scheduler.remove_job("check_feeds")
-        
-        # 新しいジョブを追加
-        scheduler.add_job(
-            feed_manager.check_feeds,
-            IntervalTrigger(minutes=interval),
-            id="check_feeds",
-            replace_existing=True,
-            name="フィード確認"
-        )
-        
-        logger.info(f"フィード確認間隔を更新しました: {interval}分")
-        return True
-        
-    except Exception as e:
-        logger.error(f"フィード確認間隔の更新中にエラーが発生しました: {e}", exc_info=True)
-        return False
-

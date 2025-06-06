@@ -287,7 +287,7 @@ UIコンポーネント（ボタン、セレクトメニューなど）を提供
 from discord_bot.ui_components import ConfigView, FeedListView, ChannelListView
 
 # 設定ビューの作成
-config_view = ConfigView(config_manager)
+config_view = ConfigView(config, config_manager, feed_manager)
 
 # フィードリストビューの作成
 feed_list_view = FeedListView(feed_manager)

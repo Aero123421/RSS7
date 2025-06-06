@@ -8,25 +8,20 @@
 """
 
 from .logger import setup_logger
-from .scheduler import setup_scheduler, update_check_interval
+from .scheduler import setup_scheduler
 from .helpers import (
     generate_article_id,
     parse_datetime,
     clean_html,
-    truncate_text,
     get_channel_name_for_feed,
-    find_category_by_name
 )
 
 __all__ = [
     "setup_logger",
     "setup_scheduler",
-    "update_check_interval",
     "generate_article_id",
     "parse_datetime",
     "clean_html",
-    "truncate_text",
-    "get_channel_name_for_feed",
-    "find_category_by_name"
+    "get_channel_name_for_feed"
 ]
 

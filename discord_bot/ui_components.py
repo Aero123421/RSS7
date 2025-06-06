@@ -11,6 +11,9 @@ import logging
 import asyncio
 from typing import Dict, Any, List, Optional
 
+from ai.ai_processor import AIProcessor
+from apscheduler.triggers.interval import IntervalTrigger
+
 import discord
 from discord import ui
 
@@ -18,8 +21,14 @@ logger = logging.getLogger(__name__)
 
 class ConfigView(ui.View):
     """設定パネルビュー"""
-    
-    def __init__(self, config: Dict[str, Any], config_manager, guild: Optional[discord.Guild] = None):
+
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        config_manager,
+        feed_manager,
+        guild: Optional[discord.Guild] = None,
+    ):
         """
         初期化
         
@@ -31,12 +40,13 @@ class ConfigView(ui.View):
         self.config = config
         self.config_manager = config_manager
         self.guild = guild
-        
+        self.feed_manager = feed_manager
+
         # AIプロバイダ選択メニューの追加
-        self.add_item(AIModelSelect(config))
-        
+        self.add_item(AIModelSelect(config, feed_manager))
+
         # 確認間隔選択メニューの追加
-        self.add_item(CheckIntervalSelect(config))
+        self.add_item(CheckIntervalSelect(config, feed_manager))
         if guild:
             self.add_item(DiscordCategorySelect(config, guild))
     
@@ -87,7 +97,7 @@ class ConfigView(ui.View):
 class AIModelSelect(ui.Select):
     """AIモデル選択メニュー"""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], feed_manager):
         """
         初期化
         
@@ -95,6 +105,7 @@ class AIModelSelect(ui.Select):
             config: 設定辞書
         """
         self.config = config
+        self.feed_manager = feed_manager
         
         # 現在の設定を取得
         current_model = config.get("ai_model", "lmstudio")
@@ -116,12 +127,20 @@ class AIModelSelect(ui.Select):
         """選択時のコールバック"""
         # 選択された値を設定に反映
         self.config["ai_model"] = self.values[0]
-        
+
         # 設定を保存
         from config.config_manager import ConfigManager
         config_manager = ConfigManager()
         config_manager.update_config(self.config)
-        
+
+        # AIプロセッサーを再初期化
+        try:
+            await self.feed_manager.ai_processor.api.close()
+        except Exception:
+            pass
+        from ai.ai_processor import AIProcessor
+        self.feed_manager.ai_processor = AIProcessor(self.feed_manager.config)
+
         # 応答を送信
         await interaction.response.send_message(
             f"AIプロバイダを「{self.values[0]}」に設定しました。",
@@ -130,8 +149,8 @@ class AIModelSelect(ui.Select):
 
 class CheckIntervalSelect(ui.Select):
     """確認間隔選択メニュー"""
-    
-    def __init__(self, config: Dict[str, Any]):
+
+    def __init__(self, config: Dict[str, Any], feed_manager):
         """
         初期化
         
@@ -139,6 +158,7 @@ class CheckIntervalSelect(ui.Select):
             config: 設定辞書
         """
         self.config = config
+        self.feed_manager = feed_manager
         
         # 現在の設定を取得
         current_interval = config.get("check_interval", 15)
@@ -181,12 +201,21 @@ class CheckIntervalSelect(ui.Select):
         """選択時のコールバック"""
         # 選択された値を設定に反映
         self.config["check_interval"] = int(self.values[0])
-        
+
         # 設定を保存
         from config.config_manager import ConfigManager
         config_manager = ConfigManager()
         config_manager.update_config(self.config)
-        
+
+        # スケジューラーの再設定
+        scheduler = getattr(interaction.client, "scheduler", None)
+        if scheduler:
+            from apscheduler.triggers.interval import IntervalTrigger
+            scheduler.reschedule_job(
+                "check_feeds",
+                trigger=IntervalTrigger(minutes=int(self.values[0])),
+            )
+
         # 応答を送信
         await interaction.response.send_message(
             f"確認間隔を「{self.values[0]}分」に設定しました。",
@@ -537,7 +566,7 @@ class RemoveFeedModal(ui.Modal, title="フィード削除"):
         """送信時のコールバック"""
         try:
             # フィードの削除
-            success, message = self.feed_manager.remove_feed(self.url_input.value)
+            success, message = await self.feed_manager.remove_feed(self.url_input.value)
             
             if success:
                 # 設定の保存
