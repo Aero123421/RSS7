@@ -8,6 +8,7 @@ AIプロセッサー
 """
 
 import logging
+import asyncio
 from typing import Dict, Any, Optional, List
 from utils.helpers import select_gemini_api_key
 
