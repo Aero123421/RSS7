@@ -67,10 +67,11 @@ Discord RSS Botは以下のスラッシュコマンドを提供しています�
 新しいRSSフィードを追加するには、`/addrss`コマンドを使用します：
 
 ```
-/addrss url:https://example.com/feed.xml channel_name:tech-news
+/addrss url:https://example.com/feed.xml channel_name:tech-news prompt_hint:"技術ニュースを短く要約"
 ```
 
 チャンネル名を指定しない場合は、フィード名に基づいてチャンネルが自動作成されます。
+`prompt_hint` を指定すると、その説明からGeminiが要約用のカスタムプロンプトを生成し、追加したチャンネル専用で使用します。
 
 ### フィードの一覧表示
 
