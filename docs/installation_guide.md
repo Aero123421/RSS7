@@ -117,8 +117,8 @@ GEMINI_API_KEYS=
 # 1つだけ指定する場合は GEMINI_API_KEY を使用
 # GEMINI_API_KEY=your_gemini_api_key_here
 
-# YouTube Data API設定（YouTube再生リスト監視に使用）
-# YOUTUBE_API_KEY=your_youtube_api_key_here
+# YouTube要約チャンネルID設定
+# YOUTUBE_CHANNEL_ID=123456789012345678
 
 # LM Studio API設定（LM Studioを使用する場合）
 # ローカル実行時は http://localhost:1234/v1

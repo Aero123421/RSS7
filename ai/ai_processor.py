@@ -142,8 +142,6 @@ class AIProcessor:
         """
         # 要約対象のコンテンツ
         content = article.get("content", "")
-        if "youtube.com/watch" in article.get("link", ""):
-            content = article.get("link")
 
         # 要約の最大文字数
         max_length = self.config.get("summary_length", 200)
@@ -159,14 +157,6 @@ class AIProcessor:
         if provider and provider != self.ai_provider:
             api = self._create_api(provider)
             summarizer = Summarizer(api)
-        elif feed_info.get("ai_model") or feed_info.get("ai_provider"):
-            m = feed_info.get("ai_model") or self.ai_model
-            p = feed_info.get("ai_provider") or (
-                "gemini" if m.startswith("gemini") else self.ai_provider
-            )
-            if m != self.ai_model or p != self.ai_provider:
-                api = self._create_api(p, m)
-                summarizer = Summarizer(api)
 
         # 要約の生成
         summary = await summarizer.summarize(content, max_length, summary_type or "normal")

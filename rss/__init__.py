@@ -10,7 +10,6 @@ RSS/atomフィードの処理と管理を行う
 from .feed_manager import FeedManager
 from .feed_parser import FeedParser
 from .article_store import ArticleStore
-from .youtube_api import YouTubeAPI
 
-__all__ = ["FeedManager", "FeedParser", "ArticleStore", "YouTubeAPI"]
+__all__ = ["FeedManager", "FeedParser", "ArticleStore"]
 
