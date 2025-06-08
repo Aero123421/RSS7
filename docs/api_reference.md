@@ -30,7 +30,6 @@ discord_rss_bot/
 ├── ai/                     # AI処理モジュール
 │   ├── __init__.py
 │   ├── ai_processor.py     # AIプロセッサー基底クラス
-│   ├── lmstudio_api.py     # LM Studio API連携
 │   ├── gemini_api.py       # Google Gemini API連携
 │   ├── summarizer.py       # 要約機能（翻訳を兼ねる）
 │   └── classifier.py       # ジャンル分類機能
@@ -65,8 +64,7 @@ config = config_manager.load_config()
 # 設定の更新
 config_manager.update_config({
     "check_interval": 30,
-    "ai_provider": "gemini",
-    "fallback_ai_provider": "gemini"
+    "ai_provider": "gemini"
 })
 
 # 設定の保存
@@ -178,22 +176,6 @@ from ai.ai_processor import AIProcessor
 # category = await processor.classify(text)
 ```
 
-### LMStudioAPI
-
-LM Studio APIを使用したAIプロセッサーです。
-
-```python
-from ai.lmstudio_api import LMStudioAPI
-
-# 初期化
-processor = LMStudioAPI(config)
-
-# 要約（自動翻訳を含む）
-summary = await processor.summarize(text, max_length=200, summary_type="normal")
-
-# ジャンル分類
-category = await processor.classify(text)
-```
 
 ### GeminiAPI
 

@@ -13,19 +13,6 @@ services:
       - TZ=Asia/Tokyo
     networks:
       - bot-network
-
-  # LM Studio API（オプション）
-  # lmstudio-api:
-  #   image: lmstudio/api:latest
-  #   container_name: lmstudio-api
-  #   restart: unless-stopped
-  #   ports:
-  #     - "1234:1234"
-  #   volumes:
-  #     - ./models:/models
-  #   environment:
-  #     - MODEL_PATH=/models/your-model.gguf
-  #   networks:
   #     - bot-network
 
 networks:

@@ -32,9 +32,6 @@ GEMINI_API_2=
 # 単一キーのみ使用する場合は GEMINI_API_KEY を設定
 # GEMINI_API_KEY=your_gemini_api_key_here
 
-# LM Studio API設定（LM Studioを使用する場合）
-# LM Studio APIコンテナを起動する場合は、以下のURLを指定してください
-# LMSTUDIO_API_URL=http://lmstudio-api:1234/v1
 ```
 
 ### 2. データディレクトリの作成
@@ -47,44 +44,12 @@ mkdir -p data
 
 ### 3. Docker Composeでの起動
 
-#### 3.1 LM Studio APIを使用しない場合
+#### 3. ボットの起動
 
-LM Studio APIを使用せず、Google Gemini APIのみを使用する場合は、以下のコマンドでボットを起動します。
+以下のコマンドでボットを起動します。
 
 ```bash
 docker-compose up -d discord-rss-bot
-```
-
-#### 3.2 LM Studio APIを使用する場合
-
-LM Studio APIを使用する場合は、`docker-compose.yml` ファイルの `lmstudio-api` サービスのコメントを解除し、モデルパスを設定します。
-
-```yaml
-lmstudio-api:
-  image: lmstudio/api:latest
-  container_name: lmstudio-api
-  restart: unless-stopped
-  ports:
-    - "1234:1234"
-  volumes:
-    - ./models:/models
-  environment:
-    - MODEL_PATH=/models/your-model.gguf
-  networks:
-    - bot-network
-```
-
-モデルファイル（.gguf形式）を `models` ディレクトリに配置します。
-
-```bash
-mkdir -p models
-# モデルファイルを models ディレクトリにコピー
-```
-
-その後、以下のコマンドで両方のサービスを起動します。
-
-```bash
-docker-compose up -d
 ```
 
 ### 4. ログの確認
@@ -124,15 +89,6 @@ docker-compose restart discord-rss-bot
 
 ```bash
 docker-compose logs discord-rss-bot
-```
-
-### LM Studio APIに接続できない場合
-
-1. LM Studio APIサービスが起動しているか確認してください。
-2. モデルファイルが正しく配置されているか確認してください。
-3. `.env` ファイルの `LMSTUDIO_API_URL` が正しく設定されているか確認してください。
-
-### データが保存されない場合
 
 1. `data` ディレクトリのパーミッションを確認してください。
 2. コンテナ内のユーザーが `data` ディレクトリに書き込み権限を持っているか確認してください。

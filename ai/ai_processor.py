@@ -11,7 +11,6 @@ import logging
 from typing import Dict, Any, Optional, List
 from utils.helpers import select_gemini_api_key
 
-from .lmstudio_api import LMStudioAPI
 from .gemini_api import GeminiAPI
 from .summarizer import Summarizer
 from .classifier import Classifier
@@ -30,28 +29,11 @@ class AIProcessor:
         """
         self.config = config
         
-        # プライマリAIプロバイダの選択
-        self.ai_provider = config.get("ai_provider", "lmstudio")
-        self.ai_model = config.get("ai_model")
-        if not self.ai_model:
-            self.ai_model = (
-                "gemini-1.5-pro" if self.ai_provider.startswith("gemini") else "lmstudio"
-            )
-        elif self.ai_provider.startswith("gemini") and not self.ai_model.startswith("gemini"):
-            logger.warning(
-                "Geminiを使用する場合、ai_model も gemini-* である必要があります。デフォルトモデルを使用します。"
-            )
-            self.ai_model = "gemini-1.5-pro"
-        elif self.ai_provider.startswith("lmstudio") and self.ai_model.startswith("gemini"):
-            logger.warning(
-                "LM Studioを使用する場合、ai_model はローカルモデル名を指定してください。デフォルトモデルを使用します。"
-            )
-            self.ai_model = "lmstudio"
+        # AIモデルの設定（Google Geminiのみを利用）
+        self.ai_provider = "gemini"
+        self.ai_model = config.get("ai_model", "gemini-2.0-flash")
 
-        self.api = self._create_api(self.ai_provider, self.ai_model)
-
-        # フォールバックプロバイダ
-        self.fallback_provider = config.get("fallback_ai_provider")
+        self.api = self._create_api(self.ai_model)
 
         # 各処理クラスの初期化
         self.summarizer = Summarizer(self.api)
@@ -59,21 +41,15 @@ class AIProcessor:
 
         logger.info("AIプロセッサーを初期化しました")
 
-    def _create_api(self, provider: str, model: Optional[str] = None):
-        """AIプロバイダに応じたAPIインスタンスを生成する"""
-        if provider.startswith("gemini"):
-            api_key = self.config.get("gemini_api_key", "")
-            keys = self.config.get("gemini_api_keys")
-            if keys:
-                api_key = select_gemini_api_key(keys)
-            selected_model = model or "gemini-1.5-pro"
-            logger.info(f"Google Gemini APIを使用します: {selected_model}")
-            return GeminiAPI(api_key, model=selected_model)
-
-        api_url = self.config.get("lmstudio_api_url", "http://localhost:1234/v1")
-        selected_model = model or "lmstudio"
-        logger.info(f"LM Studio APIを使用します: {api_url} ({selected_model})")
-        return LMStudioAPI(api_url, model=selected_model)
+    def _create_api(self, model: Optional[str] = None):
+        """Google Gemini APIインスタンスを生成する"""
+        api_key = self.config.get("gemini_api_key", "")
+        keys = self.config.get("gemini_api_keys")
+        if keys:
+            api_key = select_gemini_api_key(keys)
+        selected_model = model or "gemini-2.0-flash"
+        logger.info(f"Google Gemini APIを使用します: {selected_model}")
+        return GeminiAPI(api_key, model=selected_model)
     
     async def process_article(self, article: Dict[str, Any], feed_info: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -95,18 +71,7 @@ class AIProcessor:
                     processed = await self._summarize_article(processed, feed_info)
                 except Exception as e:
                     logger.warning(f"要約に失敗しました: {e}")
-                    if self.fallback_provider and self.fallback_provider != self.ai_provider:
-                        try:
-                            processed = await self._summarize_article(
-                                processed, feed_info, provider=self.fallback_provider
-                            )
-                        except Exception as e2:
-                            logger.error(
-                                f"フォールバック要約にも失敗しました: {e2}", exc_info=True
-                            )
-                            processed["summarized"] = False
-                    else:
-                        processed["summarized"] = False
+                    processed["summarized"] = False
             
             # ジャンル分類
             if self.config.get("classify", False):
@@ -129,7 +94,6 @@ class AIProcessor:
         self,
         article: Dict[str, Any],
         feed_info: Dict[str, Any],
-        provider: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         記事を要約する
@@ -150,9 +114,6 @@ class AIProcessor:
         # 使用するサマライザー
         summarizer = self.summarizer
         api = None
-        if provider and provider != self.ai_provider:
-            api = self._create_api(provider)
-            summarizer = Summarizer(api)
 
         # 要約の生成
         summary = await summarizer.summarize(content, max_length, summary_type or "normal")
@@ -170,8 +131,6 @@ class AIProcessor:
 
         logger.info(f"記事を要約しました: {article.get('title')}")
 
-        if api:
-            await api.close()
         return article
     
     async def _classify_article(self, article: Dict[str, Any]) -> Dict[str, Any]:

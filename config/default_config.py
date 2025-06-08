@@ -21,13 +21,11 @@ DEFAULT_CONFIG = {
     "max_articles": 5,    # 1回の確認で処理する最大記事数
     
     # AI設定
-    "ai_provider": "lmstudio",  # AIプロバイダ（lmstudio or gemini）
-    "fallback_ai_provider": "gemini",  # 予備のAIプロバイダ
-    "lmstudio_api_url": "http://localhost:1234/v1",  # LM Studio API URL
+    "ai_provider": "gemini",  # AIプロバイダ（geminiのみ）
     "gemini_api_key": "",  # Google Gemini API Key (旧形式)
     "gemini_api_keys": [],  # Gemini API Keyのリスト
-    "ai_model": "lmstudio",  # 使用するAIモデル
-                              # gemini-2.0-flash, gemini-2.5-flash-preview-05-20, lmstudio
+    "ai_model": "gemini-2.0-flash",  # 使用するAIモデル
+                              # gemini-2.0-flash, gemini-2.5-flash-preview-05-20
     "summarize": True,     # 要約（翻訳を兼ねる）を有効にするか
     "summary_length": 4000, # 要約の最大文字数
     "classify": False,     # ジャンル分類を有効にするか

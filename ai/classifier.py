@@ -20,7 +20,7 @@ class Classifier:
         初期化
         
         Args:
-            api: APIインスタンス（LMStudioAPIまたはGeminiAPI）
+            api: APIインスタンス（GeminiAPI）
         """
         self.api = api
         logger.info("ジャンル分類機能を初期化しました")
@@ -83,48 +83,4 @@ class Classifier:
             return "other"
 
 # テスト用コード
-async def test_classifier():
-    """ジャンル分類機能のテスト"""
-    import asyncio
-    from lmstudio_api import LMStudioAPI
-    
-    # APIインスタンスの作成
-    api = LMStudioAPI()
-    
-    # 分類インスタンスの作成
-    classifier = Classifier(api)
-    
-    try:
-        # テスト記事
-        test_articles = [
-            {
-                "title": "新型スマートフォンの発売日が決定、AI機能を強化",
-                "content": "大手メーカーは次世代スマートフォンの発売日を発表した。新モデルは人工知能機能が大幅に強化され、ユーザー体験の向上が期待されている。カメラ性能も向上し、暗所での撮影能力が改善されている。"
-            },
-            {
-                "title": "株式市場が急落、世界経済の先行き不安",
-                "content": "昨日の株式市場は大幅な下落となった。米国の金利政策や世界的なインフレ懸念が投資家心理に影響を与えている。アナリストは今後の動向に注意が必要だと警告している。"
-            },
-            {
-                "title": "新作映画が興行収入記録を更新",
-                "content": "先週公開された新作映画が、初週の興行収入で歴代最高記録を更新した。有名監督と人気俳優の組み合わせが観客を魅了し、SNSでも話題となっている。続編の制作も既に決定している。"
-            }
-        ]
-        
-        # カテゴリリスト
-        categories = ["technology", "business", "entertainment", "sports", "politics", "science", "health", "other"]
-        
-        # 各記事の分類テスト
-        for article in test_articles:
-            print(f"記事タイトル: {article['title']}")
-            category = await classifier.classify(article["title"], article["content"], categories)
-            print(f"分類結果: {category}\n")
-        
-    finally:
-        # セッションを閉じる
-        await api.close()
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(test_classifier())
 
