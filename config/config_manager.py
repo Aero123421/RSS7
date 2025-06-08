@@ -140,3 +140,8 @@ class ConfigManager:
             self.config["gemini_api_key"] = os.environ.get("GEMINI_API_KEY")
             logger.info("環境変数からGemini APIキーを読み込みました")
 
+        if not self.config.get("gemini_api_keys") and os.environ.get("GEMINI_API_KEYS"):
+            keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
+            self.config["gemini_api_keys"] = keys
+            logger.info("環境変数からGemini APIキーのリストを読み込みました")
+

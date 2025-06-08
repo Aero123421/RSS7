@@ -97,7 +97,7 @@ AIプロバイダを選択するには、`/rss_config`コマンドを使用し�
 
 ### 要約設定
 
-記事の要約を有効/無効にするには、`/rss_config`コマンドを使用して設定パネルを表示し、「要約」セクションで設定します。要約の文字数も設定できます。
+記事の要約を有効/無効にするには、`/rss_config`コマンドを使用して設定パネルを表示し、「要約」セクションで設定します。要約の文字数に加え、フィード追加時に`short`、`normal`、`long`の3種類から要約の長さを選択できます。要約は箇条書きではなく、短い文章で生成されます。
 
 ### ジャンル分類設定
 
@@ -153,7 +153,7 @@ Discord RSS Botは、記事情報を視覚的に表示するためにエンベ�
   "ai_provider": "gemini",
   "fallback_ai_provider": "gemini",
   "lmstudio_api_url": "http://localhost:1234/v1",
-  "gemini_api_key": "your_gemini_api_key"
+  "gemini_api_keys": ["your_gemini_api_key1", "your_gemini_api_key2"]
 }
 ```
 

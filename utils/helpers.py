@@ -142,3 +142,17 @@ def get_channel_name_for_feed(feed_url: str, feed_title: str = None) -> str:
             return f"rss-feed-{hash_str}"
 
 
+
+
+# Gemini API key selection
+from typing import List
+
+
+def select_gemini_api_key(keys: List[str]) -> str:
+    """奇数日と偶数日で使用するGemini APIキーを切り替える"""
+    if not keys:
+        return ""
+    if len(keys) == 1:
+        return keys[0]
+    day = datetime.now().day
+    return keys[0] if day % 2 == 1 else keys[1]

@@ -9,6 +9,7 @@ AIプロセッサー
 
 import logging
 from typing import Dict, Any, Optional, List
+from utils.helpers import select_gemini_api_key
 
 from .lmstudio_api import LMStudioAPI
 from .gemini_api import GeminiAPI
@@ -62,6 +63,9 @@ class AIProcessor:
         """AIプロバイダに応じたAPIインスタンスを生成する"""
         if provider.startswith("gemini"):
             api_key = self.config.get("gemini_api_key", "")
+            keys = self.config.get("gemini_api_keys")
+            if keys:
+                api_key = select_gemini_api_key(keys)
             selected_model = model or "gemini-1.5-pro"
             logger.info(f"Google Gemini APIを使用します: {selected_model}")
             return GeminiAPI(api_key, model=selected_model)
@@ -155,7 +159,7 @@ class AIProcessor:
             summarizer = Summarizer(api)
 
         # 要約の生成
-        summary = await summarizer.summarize(content, max_length)
+        summary = await summarizer.summarize(content, max_length, summary_type or "normal")
 
         # 要約結果を記事に追加
         article["summary"] = summary

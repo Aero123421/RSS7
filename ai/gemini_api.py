@@ -27,7 +27,15 @@ class GeminiAPI:
             api_key: Google Gemini API Key（指定がない場合は環境変数から取得）
             model: 使用するモデル名
         """
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
+        if api_key:
+            self.api_key = api_key
+        else:
+            if os.environ.get("GEMINI_API_KEYS"):
+                from utils.helpers import select_gemini_api_key
+                keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
+                self.api_key = select_gemini_api_key(keys)
+            else:
+                self.api_key = os.environ.get("GEMINI_API_KEY", "")
         if not self.api_key:
             logger.warning("Gemini API Keyが設定されていません")
 

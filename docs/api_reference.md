@@ -172,7 +172,7 @@ from ai.ai_processor import AIProcessor
 # processor = AIProcessor(config)
 
 # 要約（自動翻訳を含む）
-# summary = await processor.summarize(text, max_length=200)
+# summary = await processor.summarize(text, max_length=200, summary_type="normal")
 
 # ジャンル分類
 # category = await processor.classify(text)
@@ -189,7 +189,7 @@ from ai.lmstudio_api import LMStudioAPI
 processor = LMStudioAPI(config)
 
 # 要約（自動翻訳を含む）
-summary = await processor.summarize(text, max_length=200)
+summary = await processor.summarize(text, max_length=200, summary_type="normal")
 
 # ジャンル分類
 category = await processor.classify(text)
@@ -207,7 +207,7 @@ from ai.gemini_api import GeminiAPI
 processor = GeminiAPI(api_key="YOUR_API_KEY", model="gemini-1.5-pro")
 
 # 要約（自動翻訳を含む）
-summary = await processor.summarize(text, max_length=200)
+summary = await processor.summarize(text, max_length=200, summary_type="normal")
 
 # ジャンル分類
 category = await processor.classify(text)
@@ -224,7 +224,7 @@ from ai.summarizer import Summarizer
 summarizer = Summarizer(ai_processor)
 
 # 要約
-summary = await summarizer.summarize(text, max_length=200)
+summary = await summarizer.summarize(text, max_length=200, summary_type="normal")
 ```
 
 ### Classifier

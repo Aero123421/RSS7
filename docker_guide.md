@@ -25,7 +25,12 @@ cp .env.example .env
 DISCORD_TOKEN=your_discord_token_here
 
 # Google Gemini API設定（Gemini APIを使用する場合）
-GEMINI_API_KEY=your_gemini_api_key_here
+# GEMINI_API_KEYS に gemini1 と gemini2 のキーをカンマ区切りで指定すると、
+# 奇数日と偶数日で自動的に切り替えます
+# 例: GEMINI_API_KEYS=gemini_key1,gemini_key2
+GEMINI_API_KEYS=
+# 単一キーのみ使用する場合は GEMINI_API_KEY を設定
+# GEMINI_API_KEY=your_gemini_api_key_here
 
 # LM Studio API設定（LM Studioを使用する場合）
 # LM Studio APIコンテナを起動する場合は、以下のURLを指定してください
