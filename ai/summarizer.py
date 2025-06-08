@@ -61,19 +61,16 @@ class Summarizer:
                         "次の文章を日本語で2〜3文、100文字以内で要約してください。\n\n"
                         f"{text}\n\n要約:"
                     )
-                    max_length = min(max_length, 120)
                 elif summary_type == "long":
                     prompt = (
                         "次の文章を日本語で詳細に500文字以内で要約してください。読みやすいように適度に改行してください。\n\n"
                         f"{text}\n\n要約:"
                     )
-                    max_length = min(max_length, 500)
                 else:
                     prompt = (
                         "次の文章を日本語で200文字以内で要約してください。読みやすいように適度に改行してください。\n\n"
                         f"{text}\n\n要約:"
                     )
-                    max_length = min(max_length, 200)
             
             # APIを使用して要約
             if isinstance(self.api, GeminiAPI):
