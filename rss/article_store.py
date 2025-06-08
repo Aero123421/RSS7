@@ -51,6 +51,19 @@ class ArticleStore:
                     processed_at TEXT NOT NULL
                 )
             ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS articles (
+                    message_id TEXT PRIMARY KEY,
+                    channel_id TEXT NOT NULL,
+                    title TEXT,
+                    content TEXT,
+                    feed_url TEXT,
+                    created_at TEXT NOT NULL
+                )
+            ''')
+
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_articles_channel ON articles (channel_id)')
             
             # インデックス作成
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_feed_url ON processed_articles (feed_url)')
@@ -259,6 +272,71 @@ class ArticleStore:
             conn.commit()
             return count
             
+        finally:
+            conn.close()
+
+    async def add_full_article(self, message_id: str, channel_id: str, article: Dict[str, Any], limit: int = 1000) -> bool:
+        """記事全文を保存する"""
+        async with self.lock:
+            try:
+                now = datetime.now(timezone.utc).isoformat()
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(
+                    None,
+                    lambda: self._add_full_article(message_id, channel_id, article, now, limit),
+                )
+                return True
+            except Exception as e:
+                logger.error(f"記事全文の保存中にエラーが発生しました: {e}", exc_info=True)
+                return False
+
+    def _add_full_article(self, message_id: str, channel_id: str, article: Dict[str, Any], created_at: str, limit: int) -> None:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                'INSERT OR REPLACE INTO articles (message_id, channel_id, title, content, feed_url, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                (
+                    message_id,
+                    channel_id,
+                    article.get("title"),
+                    article.get("content"),
+                    article.get("feed_url"),
+                    created_at,
+                ),
+            )
+            conn.commit()
+
+            cursor.execute(
+                'SELECT message_id FROM articles WHERE channel_id = ? ORDER BY created_at DESC',
+                (channel_id,),
+            )
+            rows = cursor.fetchall()
+            if len(rows) > limit:
+                for mid, in rows[limit:]:
+                    cursor.execute('DELETE FROM articles WHERE message_id = ?', (mid,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    async def get_full_article(self, message_id: str) -> Optional[Dict[str, Any]]:
+        """保存された記事を取得する"""
+        async with self.lock:
+            try:
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(None, lambda: self._get_full_article(message_id))
+            except Exception as e:
+                logger.error(f"記事取得中にエラーが発生しました: {e}", exc_info=True)
+                return None
+
+    def _get_full_article(self, message_id: str) -> Optional[Dict[str, Any]]:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT * FROM articles WHERE message_id = ?', (message_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
         finally:
             conn.close()
 

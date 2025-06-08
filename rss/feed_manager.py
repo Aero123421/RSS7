@@ -113,7 +113,9 @@ class FeedManager:
                 processed_article = await self.ai_processor.process_article(article, feed)
                 
                 # Discord投稿
-                await self.discord_bot.post_article(processed_article, channel_id)
+                message_id = await self.discord_bot.post_article(processed_article, channel_id)
+                if message_id:
+                    await self.article_store.add_full_article(str(message_id), channel_id, article)
                 
                 # 処理済み記事として保存
                 article_id = generate_article_id(article)

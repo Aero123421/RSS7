@@ -10,7 +10,6 @@ Discordとの連携を行う
 import os
 import logging
 import asyncio
-import re
 from typing import Dict, Any, List, Optional
 
 import discord
@@ -98,13 +97,24 @@ class DiscordBot:
             """メッセージ受信時のイベントハンドラ"""
             if message.author.bot:
                 return
-            yt_channel = self.config.get("youtube_channel_id")
-            if yt_channel and str(message.channel.id) == str(yt_channel):
-                url = self._extract_youtube_url(message.content)
-                if url:
-                    article = {"title": url, "link": url, "content": url}
-                    processed = await self.ai_processor.process_article(article, {"summary_type": "normal"})
-                    await self.post_article(processed, str(message.channel.id))
+            if message.reference and message.reference.resolved:
+                ref = message.reference.resolved
+            elif message.reference and message.reference.message_id:
+                try:
+                    ref = await message.channel.fetch_message(message.reference.message_id)
+                except (discord.NotFound, discord.HTTPException) as e:
+                    logger.warning(f"Could not fetch referenced message {message.reference.message_id}: {e}")
+                    ref = None
+            else:
+                ref = None
+
+            if ref and ref.author.id == self.bot.user.id:
+                article = await self.feed_manager.article_store.get_full_article(str(ref.id))
+                if article:
+                    answer = await self.ai_processor.answer_question(article, message.content)
+                    await message.reply(answer)
+                    return
+
             await self.bot.process_commands(message)
 
         @self.bot.event
@@ -123,10 +133,6 @@ class DiscordBot:
                 self.config_manager.save_config()
             logger.info(f"チャンネル削除に伴い {len(targets)} 件のフィードを削除しました: {channel_id}")
 
-    def _extract_youtube_url(self, text: str) -> Optional[str]:
-        match = re.search(r"https?://(?:www\.)?(?:youtube\.com/watch\?v=[^\s&]+|youtu\.be/[^\s&]+)", text)
-        return match.group(0) if match else None
-    
     async def start(self):
         """ボットを起動する"""
         try:
@@ -136,7 +142,7 @@ class DiscordBot:
             logger.error(f"ボット起動中にエラーが発生しました: {e}", exc_info=True)
             raise
     
-    async def post_article(self, article: Dict[str, Any], channel_id: str) -> bool:
+    async def post_article(self, article: Dict[str, Any], channel_id: str) -> Optional[int]:
         """
         記事をDiscordチャンネルに投稿する
         
@@ -158,14 +164,14 @@ class DiscordBot:
             embed = await self.message_builder.build_article_embed(article)
             
             # 投稿
-            await channel.send(embed=embed)
+            msg = await channel.send(embed=embed)
             logger.info(f"記事を投稿しました: {article.get('title')} -> #{channel.name}")
-            
-            return True
+
+            return msg.id
             
         except Exception as e:
             logger.error(f"記事投稿中にエラーが発生しました: {article.get('title')}: {e}", exc_info=True)
-            return False
+            return None
 
     async def send_message(self, channel_id: str, content: str) -> bool:
         """指定したチャンネルにテキストメッセージを送信する"""

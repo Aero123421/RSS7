@@ -144,12 +144,8 @@ class AIProcessor:
         content = article.get("content", "")
 
         # 要約の最大文字数
-        max_length = self.config.get("summary_length", 200)
+        max_length = self.config.get("summary_length", 4000)
         summary_type = feed_info.get("summary_type")
-        if summary_type == "short":
-            max_length = 100
-        elif summary_type == "long":
-            max_length = 400
 
         # 使用するサマライザー
         summarizer = self.summarizer
@@ -160,6 +156,13 @@ class AIProcessor:
 
         # 要約の生成
         summary = await summarizer.summarize(content, max_length, summary_type or "normal")
+
+        # タイトルの翻訳
+        title = article.get("title", "")
+        if title:
+            translated = await summarizer.summarize(title, max_length, "title")
+            if translated:
+                article["title"] = translated
 
         # 要約結果を記事に追加
         article["summary"] = summary
@@ -205,4 +208,18 @@ class AIProcessor:
             article["classified"] = False
             article["category"] = "other"  # デフォルトカテゴリ
             return article
+
+    async def answer_question(self, article: Dict[str, Any], question: str) -> str:
+        """記事内容を元に質問に回答する"""
+        content = article.get("content", "")
+        title = article.get("title", "")
+        prompt = (
+            "あなたはニュース解説者です。以下の記事内容に基づいて質問に日本語で答えてください。\n\n"
+            f"タイトル: {title}\n\n本文:\n{content}\n\n質問: {question}\n\n回答:"
+        )
+        try:
+            return await self.api.generate_text(prompt, max_tokens=1000, temperature=0.3)
+        except Exception as e:
+            logger.error(f"回答生成中にエラーが発生しました: {e}", exc_info=True)
+            return "回答を生成できませんでした。"
 
