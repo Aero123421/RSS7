@@ -14,6 +14,7 @@ from datetime import datetime, timezone, timedelta
 
 from .feed_parser import FeedParser
 from .article_store import ArticleStore
+from .youtube_api import YouTubeAPI
 from utils.helpers import generate_article_id, parse_datetime
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class FeedManager:
         self.discord_bot = discord_bot
         self.feed_parser = FeedParser()
         self.article_store = ArticleStore()
+        self.youtube_api = YouTubeAPI(self.config.get("youtube_api_key", ""))
         self.checking = False  # フィード確認中フラグ
         
         logger.info("フィードマネージャーを初期化しました")
@@ -87,7 +89,10 @@ class FeedManager:
         logger.info(f"フィードを確認しています: {url}")
         
         # フィードを解析
-        feed_data = await self.feed_parser.parse_feed(url)
+        if feed.get("playlist_id"):
+            feed_data = await self.youtube_api.fetch_playlist(feed["playlist_id"])
+        else:
+            feed_data = await self.feed_parser.parse_feed(url)
         if not feed_data:
             logger.warning(f"フィードの解析に失敗しました: {url}")
             return
@@ -182,7 +187,16 @@ class FeedManager:
         # 日付でソート（新しい順）
         return sorted(entries, key=get_entry_date, reverse=True)
     
-    async def add_feed(self, url: str, title: str = None, channel_id: str = None, summary_type: str = "normal") -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+    async def add_feed(
+        self,
+        url: str,
+        title: str = None,
+        channel_id: str = None,
+        summary_type: str = "normal",
+        ai_model: str | None = None,
+        ai_provider: str | None = None,
+        playlist_id: str | None = None,
+    ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         フィードを追加する
         
@@ -190,6 +204,10 @@ class FeedManager:
             url: フィードURL
             title: フィードタイトル（オプション）
             channel_id: チャンネルID（オプション）
+            summary_type: 要約タイプ（short/normal/long）
+            ai_model: フィード専用のAIモデル
+            ai_provider: AIプロバイダ（省略可）
+            playlist_id: YouTube再生リストID（省略可）
             
         Returns:
             (成功フラグ, メッセージ, フィード情報)のタプル
@@ -215,8 +233,14 @@ class FeedManager:
                 "title": feed_title,
                 "channel_id": channel_id,  # Noneの場合は後でチャンネル作成時に設定
                 "added_at": datetime.now(timezone.utc).isoformat(),
-                "summary_type": summary_type
+                "summary_type": summary_type,
             }
+            if ai_model:
+                new_feed["ai_model"] = ai_model
+            if ai_provider:
+                new_feed["ai_provider"] = ai_provider
+            if playlist_id:
+                new_feed["playlist_id"] = playlist_id
             
             # 設定に追加
             feeds.append(new_feed)

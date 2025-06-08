@@ -225,6 +225,94 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 f"エラーが発生しました: {str(e)}",
                 ephemeral=True
             )
+
+    @app_commands.command(name="yt_playlist", description="YouTube再生リストを追加します")
+    @app_commands.describe(
+        url="再生リストのURLまたはフィードURL",
+        channel_name="送信先チャンネル名（省略可）",
+        model="使用するGeminiモデル"
+    )
+    @app_commands.choices(model=[
+        app_commands.Choice(name="Gemini 2.0 Flash", value="gemini-2.0-flash"),
+        app_commands.Choice(name="Gemini 2.5 Flash", value="gemini-2.5-flash-preview-05-20")
+    ])
+    async def yt_playlist(
+        interaction: discord.Interaction,
+        url: str,
+        channel_name: str = None,
+        model: str = "gemini-2.0-flash",
+    ):
+        """YouTube再生リストを追加するコマンド"""
+        try:
+            await interaction.response.send_message(
+                f"再生リスト「{url}」を追加しています...",
+                ephemeral=True,
+            )
+
+            playlist_id = None
+            if "playlist_id=" in url:
+                playlist_id = url.split("playlist_id=")[-1].split("&")[0]
+            elif "list=" in url:
+                playlist_id = url.split("list=")[-1].split("&")[0]
+
+            if not playlist_id:
+                await interaction.followup.send(
+                    "無効な再生リストURLです。", ephemeral=True
+                )
+                return
+
+            feed_url = f"https://www.youtube.com/feeds/videos.xml?playlist_id={playlist_id}"
+
+            success, message, feed_info = await feed_manager.add_feed(
+                feed_url,
+                summary_type="normal",
+                ai_model=model,
+                ai_provider="gemini",
+                playlist_id=playlist_id,
+            )
+
+            if not success:
+                await interaction.followup.send(
+                    f"再生リストの追加に失敗しました: {message}",
+                    ephemeral=True,
+                )
+                return
+
+            if channel_name:
+                channel = discord.utils.get(interaction.guild.text_channels, name=channel_name)
+                if not channel:
+                    channel_id = await feed_manager.discord_bot.create_feed_channel(
+                        interaction.guild.id,
+                        feed_info,
+                    )
+                else:
+                    channel_id = str(channel.id)
+            else:
+                channel_id = await feed_manager.discord_bot.create_feed_channel(
+                    interaction.guild.id,
+                    feed_info,
+                )
+
+            if channel_id:
+                feed_info["channel_id"] = channel_id
+                config_manager.save_config()
+                channel = interaction.guild.get_channel(int(channel_id))
+                await interaction.followup.send(
+                    f"再生リストを追加し、チャンネル {channel.mention if channel else channel_id} に関連付けました。",
+                    ephemeral=True,
+                )
+            else:
+                await interaction.followup.send(
+                    "チャンネルの作成に失敗しました。",
+                    ephemeral=True,
+                )
+
+        except Exception as e:
+            logger.error(f"再生リスト追加中にエラーが発生しました: {e}", exc_info=True)
+            await interaction.followup.send(
+                f"エラーが発生しました: {str(e)}",
+                ephemeral=True,
+            )
     
     @rss_group.command(name="list_channels", description="RSSフィードチャンネルの一覧を表示します")
     async def rss_list_channels(interaction: discord.Interaction):
@@ -299,6 +387,8 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
     
     # addrssコマンドをツリーに追加
     bot.tree.add_command(add_rss)
+    # YouTube再生リストコマンドを追加
+    bot.tree.add_command(yt_playlist)
     
     # コマンドを同期
     guild_id = config.get("guild_id")
