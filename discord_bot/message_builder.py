@@ -99,8 +99,16 @@ class MessageBuilder:
                     embed.add_field(name="公開日時", value=published, inline=True)
             
             # サムネイル画像の設定
-            if self.config.get("use_thumbnails", True) and article.get("image"):
-                embed.set_thumbnail(url=article.get("image"))
+            if self.config.get("use_thumbnails", True):
+                image_url = article.get("image")
+                if not image_url and article.get("media"):
+                    for media_item in article.get("media", []):
+                        if media_item.get("type", "").startswith("image") and media_item.get("url"):
+                            image_url = media_item.get("url")
+                            break
+
+                if image_url:
+                    embed.set_thumbnail(url=image_url)
             
             # フッター
             ai_info = []
