@@ -26,7 +26,11 @@ DISCORD_TOKEN=your_discord_token_here
 
 # Google Gemini API設定（Gemini APIを使用する場合）
 # `GEMINI_API_1` と `GEMINI_API_2` にキーを設定すると、
-# 奇数日と偶数日で自動的に切り替えます
+# 奇数日と偶数日で自動的に切り替えます。
+# 1つ目のキーがレート制限に達した場合は
+# 自動で2つ目のキーに切り替えて再試行します
+# 2つ目のキーも制限された場合は30秒待機してから再開します
+# すべてのニュースはキューに追加され10秒ごとにAPIへ送信されます
 GEMINI_API_1=
 GEMINI_API_2=
 # 単一キーのみ使用する場合は GEMINI_API_KEY を設定

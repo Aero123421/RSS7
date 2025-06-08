@@ -45,11 +45,9 @@ class AIProcessor:
         """Google Gemini APIインスタンスを生成する"""
         api_key = self.config.get("gemini_api_key", "")
         keys = self.config.get("gemini_api_keys")
-        if keys:
-            api_key = select_gemini_api_key(keys)
         selected_model = model or "gemini-2.0-flash"
         logger.info(f"Google Gemini APIを使用します: {selected_model}")
-        return GeminiAPI(api_key, model=selected_model)
+        return GeminiAPI(api_key, model=selected_model, api_keys=keys)
     
     async def process_article(self, article: Dict[str, Any], feed_info: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -115,8 +113,6 @@ class AIProcessor:
 
         # 要約の生成
         summary = await summarizer.summarize(content, max_length, summary_type or "normal")
-        # レート制限対策のため10秒待機
-        await asyncio.sleep(10)
 
         # タイトルの翻訳
         title = article.get("title", "")
@@ -124,8 +120,6 @@ class AIProcessor:
             translated = await summarizer.summarize(title, max_length, "title")
             if translated:
                 article["title"] = translated
-            # 次の処理まで間隔を空ける
-            await asyncio.sleep(10)
 
         # 要約結果を記事に追加
         article["summary"] = summary
