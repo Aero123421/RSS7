@@ -474,13 +474,6 @@ class AddFeedModal(ui.Modal, title="フィード追加"):
         )
         self.add_item(self.summary_select)
 
-        self.prompt_input = ui.TextInput(
-            label="カスタムプロンプトの要望（省略可）",
-            style=discord.TextStyle.long,
-            required=False,
-            placeholder="要約の指示を入力するとGeminiがプロンプトを生成します",
-        )
-        self.add_item(self.prompt_input)
     
     async def on_submit(self, interaction: discord.Interaction):
         """送信時のコールバック"""
@@ -492,16 +485,11 @@ class AddFeedModal(ui.Modal, title="フィード追加"):
         
         try:
             summary_type = self.summary_select.values[0]
-            custom_prompt = None
-            if self.prompt_input.value:
-                await interaction.followup.send("カスタムプロンプトを生成しています...", ephemeral=True)
-                custom_prompt = await self.feed_manager.ai_processor.generate_custom_prompt(self.prompt_input.value)
 
             # フィードの追加
             success, message, feed_info = await self.feed_manager.add_feed(
                 self.url_input.value,
                 summary_type=summary_type,
-                custom_prompt=custom_prompt,
             )
             
             if not success:

@@ -121,8 +121,8 @@ class FeedManager:
                 article_id = generate_article_id(article)
                 await self.article_store.add_processed_article(article_id, url, channel_id)
                 
-                # 連続投稿の間隔を空ける
-                await asyncio.sleep(1)
+                # 要約翻訳のレート制限に備えて間隔を10秒空ける
+                await asyncio.sleep(10)
                 
             except Exception as e:
                 logger.error(f"記事処理中にエラーが発生しました: {article.get('title')}: {e}", exc_info=True)
@@ -190,7 +190,6 @@ class FeedManager:
         title: str = None,
         channel_id: str = None,
         summary_type: str = "normal",
-        custom_prompt: str = None,
     ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         フィードを追加する
@@ -200,7 +199,6 @@ class FeedManager:
             title: フィードタイトル（オプション）
             channel_id: チャンネルID（オプション）
             summary_type: 要約タイプ（short/normal/long）
-            custom_prompt: 要約時に使用するカスタムプロンプト
             
         Returns:
             (成功フラグ, メッセージ, フィード情報)のタプル
@@ -227,7 +225,6 @@ class FeedManager:
                 "channel_id": channel_id,  # Noneの場合は後でチャンネル作成時に設定
                 "added_at": datetime.now(timezone.utc).isoformat(),
                 "summary_type": summary_type,
-                "custom_prompt": custom_prompt,
             }
             
             # 設定に追加

@@ -41,20 +41,6 @@ class AIProcessor:
 
         logger.info("AIプロセッサーを初期化しました")
 
-    async def generate_custom_prompt(self, hint: str) -> str:
-        """Geminiを使ってカスタムプロンプトを生成する"""
-        prompt = (
-            "あなたはプロンプトエンジニアです。以下の要望に合わせて、RSS記事を要約するための"
-            "日本語プロンプトを作成してください。要約は日本語のみで行い、長文の場合は適切に"
-            "改行するよう指示してください。\n\n"
-            f"要望:\n{hint}\n\n生成されたプロンプト:"
-        )
-        try:
-            return await self.api.generate_text(prompt, max_tokens=200, temperature=0.3)
-        except Exception as e:
-            logger.error(f"カスタムプロンプト生成中にエラーが発生しました: {e}", exc_info=True)
-            return hint
-
     def _create_api(self, model: Optional[str] = None):
         """Google Gemini APIインスタンスを生成する"""
         api_key = self.config.get("gemini_api_key", "")
@@ -125,12 +111,12 @@ class AIProcessor:
         max_length = self.config.get("summary_length", 4000)
         summary_type = feed_info.get("summary_type")
 
-        # 使用するサマライザー（フィードごとのカスタムプロンプトを考慮）
-        custom_prompt = feed_info.get("custom_prompt")
-        summarizer = self.summarizer if not custom_prompt else Summarizer(self.api, custom_prompt)
+        summarizer = self.summarizer
 
         # 要約の生成
         summary = await summarizer.summarize(content, max_length, summary_type or "normal")
+        # レート制限対策のため10秒待機
+        await asyncio.sleep(10)
 
         # タイトルの翻訳
         title = article.get("title", "")
@@ -138,6 +124,8 @@ class AIProcessor:
             translated = await summarizer.summarize(title, max_length, "title")
             if translated:
                 article["title"] = translated
+            # 次の処理まで間隔を空ける
+            await asyncio.sleep(10)
 
         # 要約結果を記事に追加
         article["summary"] = summary

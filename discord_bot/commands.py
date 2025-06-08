@@ -8,7 +8,6 @@ Discordのスラッシュコマンドを定義する
 """
 
 import logging
-import asyncio
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -156,8 +155,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
     @app_commands.describe(
         url="RSSフィードのURL",
         channel_name="チャンネル名（省略可）",
-        summary_length="要約の長さ",
-        prompt_hint="カスタムプロンプトの要望（省略可）"
+        summary_length="要約の長さ"
     )
     @app_commands.choices(summary_length=[
         app_commands.Choice(name="短め", value="short"),
@@ -169,7 +167,6 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
         url: str,
         channel_name: str = None,
         summary_length: str = "normal",
-        prompt_hint: str = None,
     ):
         """RSSフィードを追加するコマンド"""
         try:
@@ -179,16 +176,10 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 ephemeral=True
             )
             
-            custom_prompt = None
-            if prompt_hint:
-                await interaction.followup.send("カスタムプロンプトを生成しています...", ephemeral=True)
-                custom_prompt = await feed_manager.ai_processor.generate_custom_prompt(prompt_hint)
-
             # フィードの追加
             success, message, feed_info = await feed_manager.add_feed(
                 url,
                 summary_type=summary_length,
-                custom_prompt=custom_prompt,
             )
             
             if not success:
