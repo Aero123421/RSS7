@@ -101,11 +101,16 @@ class MessageBuilder:
             # サムネイル画像の設定
             if self.config.get("use_thumbnails", True):
                 image_url = article.get("image")
-                if not image_url and article.get("media"):
-                    for media_item in article.get("media", []):
-                        if media_item.get("type", "").startswith("image") and media_item.get("url"):
-                            image_url = media_item.get("url")
-                            break
+                if not image_url:
+                    media_list = article.get("media")
+                    if isinstance(media_list, list):  # Ensure 'media' is a list
+                        for media_item in media_list:
+                            # Ensure media_item is a dictionary before calling .get()
+                            if isinstance(media_item, dict) and \
+                               media_item.get("type", "").startswith("image") and \
+                               media_item.get("url"):
+                                image_url = media_item.get("url")
+                                break
 
                 if image_url:
                     embed.set_thumbnail(url=image_url)
