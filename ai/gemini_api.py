@@ -9,7 +9,10 @@ Google Gemini APIを使用してAI処理を行う
 
 import os
 import logging
-from typing import Optional
+import asyncio
+from typing import Optional, List
+
+from google.api_core import exceptions as google_exceptions
 
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
@@ -19,7 +22,7 @@ logger = logging.getLogger(__name__)
 class GeminiAPI:
     """Google Gemini API連携クラス"""
 
-    def __init__(self, api_key: str = None, model: str = "gemini-1.5-pro"):
+    def __init__(self, api_key: str = None, model: str = "gemini-1.5-pro", api_keys: Optional[List[str]] = None):
         """
         初期化
 
@@ -27,32 +30,70 @@ class GeminiAPI:
             api_key: Google Gemini API Key（指定がない場合は環境変数から取得）
             model: 使用するモデル名
         """
-        if api_key:
-            self.api_key = api_key
+        if api_keys:
+            self.api_keys = [k for k in api_keys if k]
         else:
-            keys = []
+            self.api_keys = []
+
+        if api_key:
+            self.api_keys = [api_key] + [k for k in self.api_keys if k != api_key]
+
+        if not self.api_keys:
+            env_keys = []
             if os.environ.get("GEMINI_API_1") or os.environ.get("GEMINI_API_2"):
                 if os.environ.get("GEMINI_API_1"):
-                    keys.append(os.environ.get("GEMINI_API_1"))
+                    env_keys.append(os.environ.get("GEMINI_API_1"))
                 if os.environ.get("GEMINI_API_2"):
-                    keys.append(os.environ.get("GEMINI_API_2"))
+                    env_keys.append(os.environ.get("GEMINI_API_2"))
             elif os.environ.get("GEMINI_API_KEYS"):
-                keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
+                env_keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
 
-            if keys:
-                from utils.helpers import select_gemini_api_key
-                self.api_key = select_gemini_api_key(keys)
+            if env_keys:
+                self.api_keys = env_keys
             else:
-                self.api_key = os.environ.get("GEMINI_API_KEY", "")
+                env_key = os.environ.get("GEMINI_API_KEY")
+                if env_key:
+                    self.api_keys = [env_key]
+
+        if self.api_keys:
+            from utils.helpers import select_gemini_api_key
+            selected = select_gemini_api_key(self.api_keys)
+            self.current_key_index = self.api_keys.index(selected)
+            self.api_key = selected
+        else:
+            self.api_key = ""
+            self.current_key_index = 0
         if not self.api_key:
             logger.warning("Gemini API Keyが設定されていません")
 
-        genai.configure(api_key=self.api_key)
-
         self.model_name = model if model.startswith("models/") else f"models/{model}"
-        self.model = genai.GenerativeModel(self.model_name)
+
+        self._configure_model()
 
         logger.info("Google Gemini APIを初期化しました")
+
+    def _configure_model(self):
+        """Configure the Gemini client with the current API key"""
+        if self.api_key:
+            genai.configure(api_key=self.api_key)
+            self.model = genai.GenerativeModel(self.model_name)
+        else:
+            self.model = None
+
+    def _switch_api_key(self):
+        """Switch to the next API key in the list"""
+        if not self.api_keys:
+            return
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        self.api_key = self.api_keys[self.current_key_index]
+        logger.info(f"APIキーを切り替えました: index={self.current_key_index}")
+        self._configure_model()
+
+    def _is_rate_limit_error(self, error: Exception) -> bool:
+        if isinstance(error, (google_exceptions.TooManyRequests, google_exceptions.ResourceExhausted)):
+            return True
+        msg = str(error).lower()
+        return "rate" in msg and "limit" in msg or "quota" in msg
     
     async def generate_text(
         self,
@@ -77,39 +118,50 @@ class GeminiAPI:
         if not self.api_key:
             raise ValueError("Gemini API Keyが設定されていません")
         
-        try:
-            generation_config = GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                candidate_count=1,
-            )
+        consecutive_limits = 0
+        while True:
+            try:
+                generation_config = GenerationConfig(
+                    max_output_tokens=max_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    candidate_count=1,
+                )
 
-            model = self.model
-            if system_instruction:
-                model = genai.GenerativeModel(
-                    self.model_name,
-                    system_instruction=system_instruction,
+                model = self.model
+                if system_instruction:
+                    model = genai.GenerativeModel(
+                        self.model_name,
+                        system_instruction=system_instruction,
+                        generation_config=generation_config,
+                    )
+                    generation_config = None
+
+                response = await model.generate_content_async(
+                    prompt,
                     generation_config=generation_config,
                 )
-                generation_config = None
 
-            response = await model.generate_content_async(
-                prompt,
-                generation_config=generation_config,
-            )
+                if response.candidates:
+                    text = response.candidates[0].content.parts[0].text
+                    return text.strip() if text else ""
 
-            if response.candidates:
-                text = response.candidates[0].content.parts[0].text
-                return text.strip() if text else ""
+                logger.warning(f"APIレスポンスに有効な結果がありません: {response}")
+                return ""
 
-            logger.warning(f"APIレスポンスに有効な結果がありません: {response}")
-            return ""
-                
-        except Exception as e:
-            logger.error(f"テキスト生成中にエラーが発生しました: {e}", exc_info=True)
-            raise
+            except Exception as e:
+                if self._is_rate_limit_error(e) and self.api_keys:
+                    consecutive_limits += 1
+                    logger.warning("レート制限に達しました。APIキーを切り替えて再試行します")
+                    self._switch_api_key()
+                    if consecutive_limits >= len(self.api_keys):
+                        logger.warning("すべてのAPIキーがレート制限に達しました。30秒待機します")
+                        await asyncio.sleep(30)
+                        consecutive_limits = 0
+                    continue
+                logger.error(f"テキスト生成中にエラーが発生しました: {e}", exc_info=True)
+                raise
     
     async def close(self):
         """互換性のために存在するダミーメソッド"""

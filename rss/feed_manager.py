@@ -36,8 +36,35 @@ class FeedManager:
         self.feed_parser = FeedParser()
         self.article_store = ArticleStore()
         self.checking = False  # フィード確認中フラグ
-        
+        self.article_queue: asyncio.Queue[Tuple[Dict[str, Any], Dict[str, Any]]] = asyncio.Queue()
+        self.worker_task: Optional[asyncio.Task] = None
+
         logger.info("フィードマネージャーを初期化しました")
+
+    def start_worker(self) -> None:
+        """記事処理用ワーカーを開始する"""
+        if not self.worker_task:
+            self.worker_task = asyncio.create_task(self._queue_worker())
+            logger.info("記事処理ワーカーを開始しました")
+
+    async def _queue_worker(self) -> None:
+        """キュー内の記事を順番に処理する"""
+        while True:
+            article, feed = await self.article_queue.get()
+            try:
+                channel_id = feed.get("channel_id")
+                url = feed.get("url")
+                processed = await self.ai_processor.process_article(article, feed)
+                message_id = await self.discord_bot.post_article(processed, channel_id)
+                if message_id:
+                    await self.article_store.add_full_article(str(message_id), channel_id, article)
+                article_id = generate_article_id(article)
+                await self.article_store.add_processed_article(article_id, url, channel_id)
+            except Exception as e:
+                logger.error(f"キュー処理中にエラーが発生しました: {e}", exc_info=True)
+            finally:
+                await asyncio.sleep(10)
+                self.article_queue.task_done()
     
     async def check_feeds(self) -> None:
         """すべてのフィードを確認する"""
@@ -106,26 +133,9 @@ class FeedManager:
             logger.info(f"処理数を{max_articles}件に制限します")
             new_articles = new_articles[:max_articles]
         
-        # 記事を処理して投稿
+        # 記事をキューに追加
         for article in new_articles:
-            try:
-                # AI処理
-                processed_article = await self.ai_processor.process_article(article, feed)
-                
-                # Discord投稿
-                message_id = await self.discord_bot.post_article(processed_article, channel_id)
-                if message_id:
-                    await self.article_store.add_full_article(str(message_id), channel_id, article)
-                
-                # 処理済み記事として保存
-                article_id = generate_article_id(article)
-                await self.article_store.add_processed_article(article_id, url, channel_id)
-                
-                # 要約翻訳のレート制限に備えて間隔を10秒空ける
-                await asyncio.sleep(10)
-                
-            except Exception as e:
-                logger.error(f"記事処理中にエラーが発生しました: {article.get('title')}: {e}", exc_info=True)
+            await self.article_queue.put((article, feed))
     
     async def _get_new_articles(self, feed_data: Dict[str, Any], feed_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         """

@@ -43,6 +43,7 @@ async def main():
 
         # フィードマネージャーの初期化
         feed_manager = FeedManager(config, ai_processor, discord_bot)
+        feed_manager.start_worker()
 
         # ボットからマネージャーへの参照を設定
         discord_bot.feed_manager = feed_manager
