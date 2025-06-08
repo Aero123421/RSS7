@@ -190,6 +190,7 @@ class FeedManager:
         title: str = None,
         channel_id: str = None,
         summary_type: str = "normal",
+        custom_prompt: str = None,
     ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         フィードを追加する
@@ -199,6 +200,7 @@ class FeedManager:
             title: フィードタイトル（オプション）
             channel_id: チャンネルID（オプション）
             summary_type: 要約タイプ（short/normal/long）
+            custom_prompt: 要約時に使用するカスタムプロンプト
             
         Returns:
             (成功フラグ, メッセージ, フィード情報)のタプル
@@ -225,6 +227,7 @@ class FeedManager:
                 "channel_id": channel_id,  # Noneの場合は後でチャンネル作成時に設定
                 "added_at": datetime.now(timezone.utc).isoformat(),
                 "summary_type": summary_type,
+                "custom_prompt": custom_prompt,
             }
             
             # 設定に追加
