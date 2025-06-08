@@ -29,8 +29,8 @@ class Summarizer:
         """
         self.api = api
         self.system_instruction = system_instruction or (
-            "あなたはプロの翻訳者兼要約者です。与えられた文章の要点を抽出し、"
-            "箇条書きを使わず簡潔な文章でまとめます。日本語で分かりやすく記述してください。"
+            "あなたは熟練した日本語編集者です。文章の要点を抽出し、必ず日本語で簡潔にまとめます。"
+            "重要な語句は**で囲んで強調してください。"
         )
         logger.info("要約機能を初期化しました")
     
@@ -52,13 +52,23 @@ class Summarizer:
             # 要約および翻訳プロンプトの作成
             if summary_type == "title":
                 prompt = (
-                    "あなたはプロの翻訳者です。以下のタイトルを日本語に翻訳してください。\n\n"
+                    "以下のタイトルを自然な日本語へ翻訳してください。重要な語句は**で囲んでください。\n\n"
                     f"タイトル:\n{text}\n\n翻訳:"
                 )
             else:
+                if summary_type == "short":
+                    length_inst = "2〜3文で100文字以内"
+                    max_length = min(max_length, 120)
+                elif summary_type == "long":
+                    length_inst = "詳細に500文字以内"
+                    max_length = min(max_length, 500)
+                else:
+                    length_inst = "200文字以内"
+                    max_length = min(max_length, 200)
+
                 prompt = (
-                    "あなたはニュース編集者です。以下の文章を日本語で分かりやすく要約してください。"
-                    f"{max_length}文字以内で書いてください。\n\n"
+                    "以下の文章を分かりやすく要約してください。"
+                    f"{length_inst}。重要な語句は**で囲んでください。\n\n"
                     f"テキスト:\n{text}\n\n要約:"
                 )
             
