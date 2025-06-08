@@ -235,7 +235,7 @@ class FeedManager:
             logger.error(f"フィード追加中にエラーが発生しました: {url}: {e}", exc_info=True)
             return False, f"エラーが発生しました: {str(e)}", None
     
-    async def remove_feed(self, url: str) -> Tuple[bool, str]:
+    async def remove_feed(self, url: str, notify_channel: bool = True) -> Tuple[bool, str]:
         """
         フィードを削除する
         
@@ -254,7 +254,14 @@ class FeedManager:
                     # フィードを削除
                     removed_feed = feeds.pop(i)
                     self.config["feeds"] = feeds
-                    
+
+                    channel_id = removed_feed.get("channel_id")
+                    if notify_channel and channel_id:
+                        await self.discord_bot.send_message(
+                            channel_id,
+                            "このRSSフィードは削除されました。不要であればチャンネルを削除してください。",
+                        )
+
                     return True, f"フィード「{removed_feed.get('title', url)}」を削除しました"
             
             return False, "指定されたフィードが見つかりません"

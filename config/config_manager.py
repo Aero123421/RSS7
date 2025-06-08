@@ -140,10 +140,17 @@ class ConfigManager:
             self.config["gemini_api_key"] = os.environ.get("GEMINI_API_KEY")
             logger.info("環境変数からGemini APIキーを読み込みました")
 
-        if not self.config.get("gemini_api_keys") and os.environ.get("GEMINI_API_KEYS"):
-            keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
-            self.config["gemini_api_keys"] = keys
-            logger.info("環境変数からGemini APIキーのリストを読み込みました")
+        if not self.config.get("gemini_api_keys"):
+            keys = []
+            if os.environ.get("GEMINI_API_1"):
+                keys.append(os.environ.get("GEMINI_API_1"))
+            if os.environ.get("GEMINI_API_2"):
+                keys.append(os.environ.get("GEMINI_API_2"))
+            if not keys and os.environ.get("GEMINI_API_KEYS"):
+                keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
+            if keys:
+                self.config["gemini_api_keys"] = keys
+                logger.info("環境変数からGemini APIキーのリストを読み込みました")
 
         if not self.config.get("youtube_channel_id") and os.environ.get("YOUTUBE_CHANNEL_ID"):
             self.config["youtube_channel_id"] = os.environ.get("YOUTUBE_CHANNEL_ID")
