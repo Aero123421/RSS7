@@ -186,13 +186,19 @@ class DiscordBot:
             logger.error(f"メッセージ送信中にエラーが発生しました: {e}", exc_info=True)
             return False
     
-    async def create_feed_channel(self, guild_id: int, feed_info: Dict[str, Any]) -> Optional[str]:
+    async def create_feed_channel(
+        self,
+        guild_id: int,
+        feed_info: Dict[str, Any],
+        channel_name: Optional[str] = None,
+    ) -> Optional[str]:
         """
         フィード用のチャンネルを作成する
         
         Args:
             guild_id: サーバーID
             feed_info: フィード情報
+            channel_name: チャンネル名（オプション）
             
         Returns:
             作成されたチャンネルID、失敗した場合はNone
@@ -207,7 +213,8 @@ class DiscordBot:
             # チャンネル名の生成
             feed_title = feed_info.get("title", "Unknown Feed")
             feed_url = feed_info.get("url", "")
-            channel_name = get_channel_name_for_feed(feed_url, feed_title)
+            if not channel_name:
+                channel_name = get_channel_name_for_feed(feed_url, feed_title)
             
             # カテゴリの取得
             category_id = self.config.get("category_id")
