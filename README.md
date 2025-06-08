@@ -28,7 +28,6 @@ Discord RSS Botは、RSS/atomフィードを定期的に監視し、取得した
     - `/rss_check_now` 最新記事取得
     - `/rss_list_feeds` フィード一覧
     - `/addrss` フィード追加
-    - `/rss_list_channels` チャンネル一覧
     - `/rss_status` ステータス表示
 
 ## スクリーンショット

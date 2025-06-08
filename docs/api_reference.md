@@ -266,7 +266,7 @@ set_managers(
 UIコンポーネント（ボタン、セレクトメニューなど）を提供するモジュールです。
 
 ```python
-from discord_bot.ui_components import ConfigView, FeedListView, ChannelListView
+from discord_bot.ui_components import ConfigView, FeedListView
 
 # 設定ビューの作成
 config_view = ConfigView(config, config_manager, feed_manager)
@@ -274,8 +274,6 @@ config_view = ConfigView(config, config_manager, feed_manager)
 # フィードリストビューの作成
 feed_list_view = FeedListView(feed_manager)
 
-# チャンネルリストビューの作成
-channel_list_view = ChannelListView(bot, feed_manager)
 ```
 
 ### MessageBuilder

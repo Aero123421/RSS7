@@ -13,7 +13,7 @@ from .message_builder import MessageBuilder
 from .ui_components import (
     ConfigView, AIModelSelect, CheckIntervalSelect,
     CategorySettingsModal, FeedListView, FeedSelect,
-    AddFeedModal, RemoveFeedModal, ChannelListView, ChannelSelect
+    AddFeedModal, RemoveFeedModal
 )
 
 __all__ = [
@@ -28,8 +28,6 @@ __all__ = [
     "FeedListView",
     "FeedSelect",
     "AddFeedModal",
-    "RemoveFeedModal",
-    "ChannelListView",
-    "ChannelSelect"
+    "RemoveFeedModal"
 ]
 

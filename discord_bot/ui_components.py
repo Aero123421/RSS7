@@ -78,8 +78,17 @@ class ConfigView(ui.View):
         
         # ボタンのラベルを更新
         button.label = f"ジャンル分類: {'有効' if self.config['classify'] else '無効'}"
-        
+
         # 応答を送信
+        await interaction.response.edit_message(view=self)
+
+    @ui.button(label="サムネイル表示設定", style=discord.ButtonStyle.primary, custom_id="thumbnail_toggle")
+    async def thumbnail_toggle(self, interaction: discord.Interaction, button: ui.Button):
+        """サムネイル表示設定ボタン"""
+        current = self.config.get("use_thumbnails", True)
+        self.config["use_thumbnails"] = not current
+        self.config_manager.update_config(self.config)
+        button.label = f"サムネイル: {'有効' if self.config['use_thumbnails'] else '無効'}"
         await interaction.response.edit_message(view=self)
     
     @ui.button(label="カテゴリ設定", style=discord.ButtonStyle.secondary, custom_id="category_settings")
@@ -357,11 +366,6 @@ class FeedListView(ui.View):
         # フィード追加モーダルを表示
         await interaction.response.send_modal(AddFeedModal(self.config, self.config_manager, self.feed_manager))
     
-    @ui.button(label="フィード削除", style=discord.ButtonStyle.danger, custom_id="remove_feed")
-    async def remove_feed(self, interaction: discord.Interaction, button: ui.Button):
-        """フィード削除ボタン"""
-        # フィード削除モーダルを表示
-        await interaction.response.send_modal(RemoveFeedModal(self.config, self.config_manager, self.feed_manager))
     
     @ui.button(label="閉じる", style=discord.ButtonStyle.secondary, custom_id="close")
     async def close_button(self, interaction: discord.Interaction, button: ui.Button):
