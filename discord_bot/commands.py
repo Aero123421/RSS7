@@ -16,7 +16,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from .ui_components import ConfigView, FeedListView, ChannelListView
+from .ui_components import ConfigView, FeedListView
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,8 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 value=f"AIモデル: {config.get('ai_model', 'gemini-2.0-flash')}\n"
                       f"確認間隔: {config.get('check_interval', 15)}分\n"
                       f"要約: {'有効' if config.get('summarize', True) else '無効'}\n"
-                      f"ジャンル分類: {'有効' if config.get('classify', False) else '無効'}",
+                      f"ジャンル分類: {'有効' if config.get('classify', False) else '無効'}\n"
+                      f"サムネイル: {'有効' if config.get('use_thumbnails', True) else '無効'}",
                 inline=False
             )
             
@@ -228,40 +229,6 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 ephemeral=True
             )
 
-    @rss_group.command(name="list_channels", description="RSSフィードチャンネルの一覧を表示します")
-    async def rss_list_channels(interaction: discord.Interaction):
-        """チャンネル一覧を表示するコマンド"""
-        try:
-            # フィードリストの取得
-            feeds = feed_manager.get_feeds()
-            
-            if not feeds:
-                await interaction.response.send_message(
-                    "登録されているフィードはありません。",
-                    ephemeral=True
-                )
-                return
-            
-            # Embedの作成
-            embed = discord.Embed(
-                title="RSSフィードチャンネル一覧",
-                description=f"フィードが登録されているチャンネル",
-                color=discord.Color(config.get("embed_color", 3447003))
-            )
-            
-            # チャンネルリストビューの作成
-            view = ChannelListView(feeds, interaction.guild)
-            
-            # 応答の送信
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"チャンネル一覧表示中にエラーが発生しました: {e}", exc_info=True)
-            await interaction.response.send_message(
-                f"エラーが発生しました: {str(e)}",
-                ephemeral=True
-            )
-    
     @rss_group.command(name="status", description="ボットのステータスを表示します")
     async def rss_status(interaction: discord.Interaction):
         """ステータスを表示するコマンド"""
