@@ -102,7 +102,8 @@ class DiscordBot:
             elif message.reference and message.reference.message_id:
                 try:
                     ref = await message.channel.fetch_message(message.reference.message_id)
-                except Exception:
+                except (discord.NotFound, discord.HTTPException) as e:
+                    logger.warning(f"Could not fetch referenced message {message.reference.message_id}: {e}")
                     ref = None
             else:
                 ref = None
