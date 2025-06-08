@@ -503,7 +503,8 @@ class AddFeedModal(ui.Modal, title="フィード追加"):
                     # チャンネルが存在しない場合は作成
                     channel_id = await self.feed_manager.discord_bot.create_feed_channel(
                         interaction.guild.id,
-                        feed_info
+                        feed_info,
+                        channel_name=channel_name,
                     )
                 else:
                     channel_id = str(channel.id)

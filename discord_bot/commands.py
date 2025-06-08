@@ -190,7 +190,8 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                     # チャンネルが存在しない場合は作成
                     channel_id = await feed_manager.discord_bot.create_feed_channel(
                         interaction.guild.id,
-                        feed_info
+                        feed_info,
+                        channel_name=channel_name,
                     )
                 else:
                     channel_id = str(channel.id)
