@@ -6,30 +6,31 @@ RSS/atomフィードを監視し、AIで処理してDiscordに投稿するボッ
 
 ## 概要
 
-Discord RSS Botは、RSS/atomフィードを監視し、新規記事をAIで処理してDiscordに投稿するボットシステムです。主な機能は以下の通りです：
+Discord RSS Botは、RSS/atomフィードを定期的に監視し、取得した記事をAIで日本語に要約・分類してDiscordに投稿するボットです。ボットに返信する形で記事内容に関する質問を投げると、AIが回答を返すこともできます。主な機能は以下の通りです：
 
-- **RSS/atom処理機能**
-  - 複数のRSS、atomフィードの登録と管理
-  - 設定可能な間隔での自動フィード確認
-  - 重複投稿防止のための処理済み記事管理
-  - フィード登録時の専用チャンネル自動作成
+- **RSS/atom処理**
+  - 複数フィードの登録・削除と自動確認
+  - 設定間隔での新着取得と重複投稿防止
+  - フィード追加時に専用チャンネルを自動作成
+  - チャンネル削除時は対応するフィードも自動削除
 
-- **AI処理機能**
-  - LM Studio APIまたはGoogle Gemini APIによる記事処理
-  - 日本語での要約生成（翻訳を兼ねる）
-  - 指定文字数での要約生成
-  - ジャンル分類（オプション）
+- **AI処理**
+  - LM StudioまたはGoogle Geminiによる要約・翻訳
+  - 要約長(short/normal/long)指定と最大文字数制限
+  - ジャンル分類（カテゴリはconfigでカスタマイズ可能）
+  - 失敗時にフォールバックプロバイダを利用
+  - 投稿済み記事への返信で質問に回答
 
-- **Discord連携機能**
-  - 処理済み記事のチャンネルへの自動投稿
-  - ジャンルベースのチャンネル振り分け
-  - スラッシュコマンドによる操作
-    - `/rss_config` - 設定パネル表示
-    - `/rss_check_now` - 現在のチャンネルの最新記事を取得
-    - `/rss_list_feeds` - フィード一覧表示
-    - `/addrss` - RSS,atomのURL新規追加
-    - `/rss_list_channels` - チャンネル一覧表示
-    - `/rss_status` - ステータス確認
+- **Discord連携**
+  - 処理記事をEmbed形式で自動投稿
+  - ジャンルに応じたチャンネル振り分け
+  - スラッシュコマンドによる管理
+    - `/rss_config` 設定パネル
+    - `/rss_check_now` 最新記事取得
+    - `/rss_list_feeds` フィード一覧
+    - `/addrss` フィード追加
+    - `/rss_list_channels` チャンネル一覧
+    - `/rss_status` ステータス表示
 
 ## スクリーンショット
 
@@ -46,8 +47,8 @@ Discord RSS Botは、RSS/atomフィードを監視し、新規記事をAIで処�
 
 - Python 3.8以上
 - Discordアカウントとボットトークン
-- （オプション）Google Gemini APIキー
-- （オプション）LM Studio（ローカルLLM実行環境）
+- （任意）Google Gemini APIキー
+- （任意）LM Studio（ローカルLLM実行環境）
 
 ## クイックスタート
 
@@ -60,21 +61,18 @@ cd discord-rss-bot
 
 # 仮想環境のセットアップ
 python -m venv venv
-source venv/bin/activate  # Linuxの場合
-# または
-venv\Scripts\activate  # Windowsの場合
+source venv/bin/activate  # Linux
+# or
+venv\Scripts\activate    # Windows
 
 # 依存パッケージのインストール
 pip install -r requirements.txt
 
 # 環境変数の設定
 cp .env.example .env
-# .envファイルを編集してDiscordトークンなどを設定
-# LM Studioを使用する場合は LMSTUDIO_API_URL を
-# 実行中のLM Studio APIサーバーのURLに変更してください。
-# パスには /chat/completions を付けず、/v1 までを指定します。
-#   例: Windows/Macでは http://host.docker.internal:1234/v1
-#       Linuxでは http://172.17.0.1:1234/v1
+# .envを編集してDiscordトークンなどを指定
+# LM Studioを利用する場合は LMSTUDIO_API_URL を
+# http://host.docker.internal:1234/v1 など実行中のURLに変更します
 
 # ボットの起動
 python bot.py
@@ -89,9 +87,8 @@ cd discord-rss-bot
 
 # 環境変数の設定
 cp .env.example .env
-# .envファイルを編集してDiscordトークンなどを設定
+# .envを編集してDiscordトークンなどを指定
 
-# Dockerコンテナの起動
 docker-compose up -d
 ```
 
@@ -107,52 +104,43 @@ docker-compose up -d
 
 ### RSS/atom処理機能
 
-- 複数のRSS、atomフィードの登録と管理
-- 設定可能な間隔（5分、15分、30分、1時間）での自動フィード確認
-- 重複投稿防止のための処理済み記事管理
-- フィード登録時の専用チャンネル自動作成
+- 複数フィードの登録と管理
+- 5分〜1時間の間隔で自動チェック
+- 処理済み記事を記録して重複投稿を防止
+- チャンネル削除に伴うフィードの自動削除
 
--### AI処理機能
+### AI処理機能
 
-- LM Studio APIまたはGoogle Gemini APIによる記事処理
-- 日本語での要約生成（英語記事は翻訳を兼ねて要約）
-- 指定文字数での要約生成
-- ジャンル分類（テクノロジー、ビジネス、政治、エンタメ、スポーツ、科学、健康、その他）
+- LM StudioまたはGoogle Geminiで記事を要約・翻訳
+- `short`/`normal`/`long` の要約長を指定可能
+- ジャンル分類とカスタムカテゴリ設定
+- フォールバックAIプロバイダ機能
+- 投稿された記事への質問応答
 
 ### Discord連携機能
 
-- 処理済み記事のチャンネルへの自動投稿
-- ジャンルベースのチャンネル振り分け
-- スラッシュコマンドによる操作
-- GUIベースの設定パネル
-- エンベッドメッセージによる視覚的な記事表示
+- 処理記事をEmbedで自動投稿
+- カテゴリ別チャンネル振り分け
+- スラッシュコマンドとGUI設定パネル
 
 ## 設定
 
-設定は以下の方法で行えます：
+設定は`.env`または`data/config.json`を編集するか、`/rss_config`で変更します。主な項目は以下の通りです。
 
-1. `.env`ファイルでの環境変数設定
-2. `data/config.json`ファイルでの詳細設定
-3. Discordのスラッシュコマンド`/rss_config`での設定
-
-主な設定項目：
-
-- Discordトークン
-- チャンネルID
-- RSSフィードURL
-- 確認間隔
-- AIプロバイダ（LM Studio / Google Gemini）
-- 要約・分類の有効/無効
-- 要約文字数
-- カテゴリ設定
+- Discordトークン、ギルドID、管理者ID
+- フィードURL一覧と確認間隔
+- AIプロバイダとフォールバック設定
+- 要約有無・文字数・分類有無
+- カテゴリリスト、Embed色、サムネイル使用可否
+- ログ出力レベルとファイル
 
 ## 貢献
 
-プロジェクトへの貢献を歓迎します！詳細は[コントリビューションガイド](docs/contributing.md)を参照してください。
+貢献を歓迎します。詳細は[コントリビューションガイド](docs/contributing.md)を参照してください。
 
 ## ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
+このプロジェクトはMITライセンスで提供されています。詳細は[LICENSE](LICENSE)を参照してください。
 
 ## 謝辞
 
@@ -164,4 +152,3 @@ docker-compose up -d
 ## 作者
 
 - Manus AI
-
