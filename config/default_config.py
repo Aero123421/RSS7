@@ -26,11 +26,10 @@ DEFAULT_CONFIG = {
     "lmstudio_api_url": "http://localhost:1234/v1",  # LM Studio API URL
     "gemini_api_key": "",  # Google Gemini API Key (旧形式)
     "gemini_api_keys": [],  # Gemini API Keyのリスト
-    "youtube_channel_id": None,  # YouTube要約用チャンネルID
     "ai_model": "lmstudio",  # 使用するAIモデル
                               # gemini-2.0-flash, gemini-2.5-flash-preview-05-20, lmstudio
     "summarize": True,     # 要約（翻訳を兼ねる）を有効にするか
-    "summary_length": 200, # 要約の最大文字数
+    "summary_length": 4000, # 要約の最大文字数
     "classify": False,     # ジャンル分類を有効にするか
     
     # カテゴリ設定

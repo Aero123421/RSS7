@@ -34,7 +34,7 @@ class Summarizer:
         )
         logger.info("要約機能を初期化しました")
     
-    async def summarize(self, text: str, max_length: int = 200, summary_type: str = "normal") -> str:
+    async def summarize(self, text: str, max_length: int = 4000, summary_type: str = "normal") -> str:
         """
         テキストを要約する
         
@@ -50,23 +50,14 @@ class Summarizer:
         
         try:
             # 要約および翻訳プロンプトの作成
-            if summary_type == "short":
+            if summary_type == "title":
                 prompt = (
-                    "あなたはニュース編集者です。以下の文章を日本語で簡潔に一文で要約してください。"
-                    f"{max_length}文字以内でまとめてください。\n\n"
-                    f"テキスト:\n{text}\n\n要約:"
-                )
-            elif summary_type == "long":
-                prompt = (
-                    "あなたはニュース編集者です。以下の文章を日本語で詳しく要約してください。"
-                    "箇条書きを使わず3〜5文程度の文章でまとめてください。"
-                    f"必ず{max_length}文字以内で記述してください。\n\n"
-                    f"テキスト:\n{text}\n\n要約:"
+                    "あなたはプロの翻訳者です。以下のタイトルを日本語に翻訳してください。\n\n"
+                    f"タイトル:\n{text}\n\n翻訳:"
                 )
             else:
                 prompt = (
                     "あなたはニュース編集者です。以下の文章を日本語で分かりやすく要約してください。"
-                    "2〜3文以内の文章で、箇条書きを使わずにまとめてください。"
                     f"{max_length}文字以内で書いてください。\n\n"
                     f"テキスト:\n{text}\n\n要約:"
                 )

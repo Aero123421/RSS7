@@ -126,7 +126,7 @@ class MessageBuilder:
             )
             return embed
     
-    def _truncate_content(self, content: str, max_length: int = 300) -> str:
+    def _truncate_content(self, content: str, max_length: int = 4000) -> str:
         """
         コンテンツを適切な長さに切り詰める
         

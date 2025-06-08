@@ -152,7 +152,4 @@ class ConfigManager:
                 self.config["gemini_api_keys"] = keys
                 logger.info("環境変数からGemini APIキーのリストを読み込みました")
 
-        if not self.config.get("youtube_channel_id") and os.environ.get("YOUTUBE_CHANNEL_ID"):
-            self.config["youtube_channel_id"] = os.environ.get("YOUTUBE_CHANNEL_ID")
-            logger.info("環境変数からYouTubeチャンネルIDを読み込みました")
 
