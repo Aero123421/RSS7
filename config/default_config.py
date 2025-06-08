@@ -24,7 +24,8 @@ DEFAULT_CONFIG = {
     "ai_provider": "lmstudio",  # AIプロバイダ（lmstudio or gemini）
     "fallback_ai_provider": "gemini",  # 予備のAIプロバイダ
     "lmstudio_api_url": "http://localhost:1234/v1",  # LM Studio API URL
-    "gemini_api_key": "",  # Google Gemini API Key
+    "gemini_api_key": "",  # Google Gemini API Key (旧形式)
+    "gemini_api_keys": [],  # Gemini API Keyのリスト
     "ai_model": "lmstudio",  # 使用するAIモデル
                               # gemini-2.0-flash, gemini-2.5-flash-preview-05-20, lmstudio
     "summarize": True,     # 要約（翻訳を兼ねる）を有効にするか

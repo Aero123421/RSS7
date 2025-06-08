@@ -29,12 +29,12 @@ class Summarizer:
         """
         self.api = api
         self.system_instruction = system_instruction or (
-            "あなたはプロの翻訳者兼要約者です。与えられた文章の要点を抽出し、" 
-            "箇条書きで三つのポイントにまとめます。日本語で簡潔かつ正確に記述してください。"
+            "あなたはプロの翻訳者兼要約者です。与えられた文章の要点を抽出し、"
+            "箇条書きを使わず簡潔な文章でまとめます。日本語で分かりやすく記述してください。"
         )
         logger.info("要約機能を初期化しました")
     
-    async def summarize(self, text: str, max_length: int = 200) -> str:
+    async def summarize(self, text: str, max_length: int = 200, summary_type: str = "normal") -> str:
         """
         テキストを要約する
         
@@ -50,12 +50,26 @@ class Summarizer:
         
         try:
             # 要約および翻訳プロンプトの作成
-            prompt = (
-                "あなたはニュース編集者です。次の文章を日本語で三つの箇条書きに要約してください。"
-                "重要なポイントを抽出し、ですます調でまとめてください。"
-                f"必ず{max_length}文字以内で、要約以外の出力はしないでください。\n\n"
-                f"テキスト:\n{text}\n\n要約:"
-            )
+            if summary_type == "short":
+                prompt = (
+                    "あなたはニュース編集者です。以下の文章を日本語で簡潔に一文で要約してください。"
+                    f"{max_length}文字以内でまとめてください。\n\n"
+                    f"テキスト:\n{text}\n\n要約:"
+                )
+            elif summary_type == "long":
+                prompt = (
+                    "あなたはニュース編集者です。以下の文章を日本語で詳しく要約してください。"
+                    "箇条書きを使わず3〜5文程度の文章でまとめてください。"
+                    f"必ず{max_length}文字以内で記述してください。\n\n"
+                    f"テキスト:\n{text}\n\n要約:"
+                )
+            else:
+                prompt = (
+                    "あなたはニュース編集者です。以下の文章を日本語で分かりやすく要約してください。"
+                    "2〜3文以内の文章で、箇条書きを使わずにまとめてください。"
+                    f"{max_length}文字以内で書いてください。\n\n"
+                    f"テキスト:\n{text}\n\n要約:"
+                )
             
             # APIを使用して要約
             if isinstance(self.api, GeminiAPI):

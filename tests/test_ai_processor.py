@@ -58,7 +58,7 @@ technical documentation describing the model's architecture and training methodo
         
         print("=== 要約テスト ===")
         summarizer = Summarizer(api)
-        summary = await summarizer.summarize(article["content"], 200)
+        summary = await summarizer.summarize(article["content"], 200, "normal")
         print(f"要約（200文字）: {summary}")
         print(f"文字数: {len(summary)}")
         print()
