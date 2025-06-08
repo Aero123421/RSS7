@@ -18,15 +18,22 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # AIモジュールのインポート
-from ai.lmstudio_api import LMStudioAPI
 from ai.summarizer import Summarizer
 from ai.classifier import Classifier
+from ai.simple_summarizer import simple_summarize
+
+
+class DummyAPI:
+    async def generate_text(self, prompt: str, max_tokens: int = 1000, temperature: float = 0.7, **kwargs):
+        return simple_summarize(prompt, max_tokens)
+
+    async def close(self):
+        pass
 
 async def test_ai_functions():
     """AI機能のテスト"""
-    # LM Studio APIの初期化
-    api_url = os.environ.get("LMSTUDIO_API_URL", "http://localhost:1234/v1")
-    api = LMStudioAPI(api_url)
+    # ダミーAPIの初期化
+    api = DummyAPI()
     
     try:
         # テスト記事

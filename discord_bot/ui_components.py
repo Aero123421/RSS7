@@ -108,13 +108,12 @@ class AIModelSelect(ui.Select):
         self.feed_manager = feed_manager
         
         # 現在の設定を取得
-        current_model = config.get("ai_model", "lmstudio")
+        current_model = config.get("ai_model", "gemini-2.0-flash")
         
         # オプションの作成
         options = [
             discord.SelectOption(label="Gemini 2.0 Flash", value="gemini-2.0-flash", default=current_model == "gemini-2.0-flash"),
-            discord.SelectOption(label="Gemini 2.5 Flash", value="gemini-2.5-flash-preview-05-20", default=current_model == "gemini-2.5-flash-preview-05-20"),
-            discord.SelectOption(label="LM Studio", value="lmstudio", default=current_model == "lmstudio")
+            discord.SelectOption(label="Gemini 2.5 Flash", value="gemini-2.5-flash-preview-05-20", default=current_model == "gemini-2.5-flash-preview-05-20")
         ]
         
         super().__init__(
@@ -128,11 +127,7 @@ class AIModelSelect(ui.Select):
         # 選択された値を設定に反映
         selected = self.values[0]
         self.config["ai_model"] = selected
-        # ai_provider もモデルに合わせて自動設定
-        if selected.startswith("gemini"):
-            self.config["ai_provider"] = "gemini"
-        else:
-            self.config["ai_provider"] = "lmstudio"
+        self.config["ai_provider"] = "gemini"
 
         # 設定を保存
         from config.config_manager import ConfigManager

@@ -15,7 +15,6 @@
    - 処理済み記事の管理
 
 2. **AIプロセッサー**
-   - LM Studio API連携
    - Google Gemini API連携
    - 記事の要約生成
    - 記事の要約生成（自動翻訳）
@@ -88,7 +87,6 @@ discord_rss_bot/
 │   └── article_store.py   # 記事保存クラス
 ├── ai/
 │   ├── ai_processor.py    # AI処理基底クラス
-│   ├── lmstudio_api.py    # LM Studio API連携
 │   ├── gemini_api.py      # Google Gemini API連携
 │   ├── summarizer.py      # 要約機能（自動翻訳）
 │   └── classifier.py      # 分類機能
@@ -120,7 +118,6 @@ discord_rss_bot/
    - json (設定管理)
 
 3. **AI API**
-   - LM Studio API
    - Google Gemini API
 
 4. **デプロイ**

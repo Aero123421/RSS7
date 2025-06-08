@@ -15,10 +15,9 @@ Discord RSS Botは、RSS/atomフィードを定期的に監視し、取得した
   - チャンネル削除時は対応するフィードも自動削除
 
 - **AI処理**
-  - LM StudioまたはGoogle Geminiによる要約・翻訳
+  - Google Geminiによる要約・翻訳
   - 要約長(short/normal/long)指定と最大文字数制限
   - ジャンル分類（カテゴリはconfigでカスタマイズ可能）
-  - 失敗時にフォールバックプロバイダを利用
   - 投稿済み記事への返信で質問に回答
 
 - **Discord連携**
@@ -48,7 +47,6 @@ Discord RSS Botは、RSS/atomフィードを定期的に監視し、取得した
 - Python 3.8以上
 - Discordアカウントとボットトークン
 - （任意）Google Gemini APIキー
-- （任意）LM Studio（ローカルLLM実行環境）
 
 ## クイックスタート
 
@@ -71,8 +69,6 @@ pip install -r requirements.txt
 # 環境変数の設定
 cp .env.example .env
 # .envを編集してDiscordトークンなどを指定
-# LM Studioを利用する場合は LMSTUDIO_API_URL を
-# http://host.docker.internal:1234/v1 など実行中のURLに変更します
 
 # ボットの起動
 python bot.py
@@ -111,10 +107,9 @@ docker-compose up -d
 
 ### AI処理機能
 
-- LM StudioまたはGoogle Geminiで記事を要約・翻訳
+- Google Geminiで記事を要約・翻訳
 - `short`/`normal`/`long` の要約長を指定可能
 - ジャンル分類とカスタムカテゴリ設定
-- フォールバックAIプロバイダ機能
 - 投稿された記事への質問応答
 
 ### Discord連携機能
@@ -129,7 +124,6 @@ docker-compose up -d
 
 - Discordトークン、ギルドID、管理者ID
 - フィードURL一覧と確認間隔
-- AIプロバイダとフォールバック設定
 - 要約有無・文字数・分類有無
 - カテゴリリスト、Embed色、サムネイル使用可否
 - ログ出力レベルとファイル

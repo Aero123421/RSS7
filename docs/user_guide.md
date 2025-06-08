@@ -91,7 +91,6 @@ AIプロバイダを選択するには、`/rss_config`コマンドを使用し�
 
 以下のAIプロバイダが利用可能です：
 
-- **LM Studio**: ローカルで動作するLLMモデルを使用します。
 - **Google Gemini**: Google Gemini APIを使用します。
 
 
@@ -151,8 +150,6 @@ Discord RSS Botは、記事情報を視覚的に表示するためにエンベ�
 ```json
 {
   "ai_provider": "gemini",
-  "fallback_ai_provider": "gemini",
-  "lmstudio_api_url": "http://localhost:1234/v1",
   "gemini_api_keys": ["your_gemini_api_key1", "your_gemini_api_key2"]
 }
 ```

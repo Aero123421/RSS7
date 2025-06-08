@@ -22,7 +22,6 @@ Discord RSS Botを使用するには、以下の前提条件が必要です：
 - Python 3.8以上
 - Discordアカウントとボットトークン
 - （オプション）Google Gemini APIキー
-- （オプション）LM Studio（ローカルLLM実行環境）
 
 ## インストール方法
 
@@ -117,21 +116,6 @@ GEMINI_API_2=
 # 1つだけ指定する場合は GEMINI_API_KEY を使用
 # GEMINI_API_KEY=your_gemini_api_key_here
 
-# LM Studio API設定（LM Studioを使用する場合）
-# ローカル実行時は http://localhost:1234/v1
-# Docker 環境でボットとAPIを同時に起動する場合は
-#   http://lmstudio-api:1234/v1 を指定してください
-# ボットのみをコンテナで動かし、APIを別ホストで実行する場合は
-#   そのホストのURLを LMSTUDIO_API_URL に設定します。
-#   パスには /chat/completions を付けず、/v1 までを指定してください。
-#   例: Windows/Macでは http://host.docker.internal:1234/v1
-#       Linuxでは http://172.17.0.1:1234/v1
-# LMSTUDIO_API_URL=http://lmstudio-api:1234/v1
-```
-
-### 設定ファイルの編集
-
-初回起動時に`data/config.json`が自動的に作成されます。必要に応じて、このファイルを編集して設定をカスタマイズできます。
 
 または、Discordのスラッシュコマンド`/rss_config`を使用して、ボットの設定を行うこともできます。
 
@@ -173,7 +157,6 @@ docker-compose up -d
 
 ### AI処理が機能しない場合
 
-1. 選択したAIプロバイダ（LM StudioまたはGoogle Gemini）の設定が正しいことを確認してください。
+1. Google Gemini APIキーが正しいことを確認してください。
 2. APIキーが有効であることを確認してください。
-3. LM Studioを使用している場合は、LM Studio APIサーバーが起動していることを確認してください。
 

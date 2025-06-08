@@ -25,7 +25,7 @@ class Summarizer:
         初期化
         
         Args:
-            api: APIインスタンス（LMStudioAPIまたはGeminiAPI）
+            api: APIインスタンス（GeminiAPI）
         """
         self.api = api
         self.system_instruction = system_instruction or (
@@ -89,44 +89,3 @@ class Summarizer:
             logger.error(f"要約中にエラーが発生しました: {e}", exc_info=True)
             logger.info("外部APIが利用できないため、簡易要約にフォールバックします")
             return simple_summarize(text, max_length)
-
-# テスト用コード
-async def test_summarizer():
-    """要約機能のテスト"""
-    import asyncio
-    from lmstudio_api import LMStudioAPI
-    
-    # APIインスタンスの作成
-    api = LMStudioAPI()
-    
-    # 要約インスタンスの作成
-    summarizer = Summarizer(api)
-    
-    try:
-        # 長いテキストの要約テスト
-        long_text = """
-人工知能（AI）の発展は、社会に大きな変革をもたらしています。機械学習、深層学習、自然言語処理などの技術の進歩により、AIは様々な分野で活用されるようになりました。
-医療分野では、画像診断や創薬研究に活用され、診断精度の向上や新薬開発の効率化に貢献しています。自動運転技術では、センサーデータの解析や状況判断にAIが使われ、交通事故の削減や移動の効率化が期待されています。
-また、ビジネスの世界では、顧客データの分析やマーケティング戦略の最適化、業務プロセスの自動化などにAIが導入され、生産性向上やコスト削減に寄与しています。
-教育分野では、個々の学習者に合わせたパーソナライズド学習や、教育コンテンツの自動生成などにAIが活用され始めています。
-一方で、AIの普及に伴い、プライバシーの問題、雇用への影響、意思決定の透明性、責任の所在など、様々な倫理的・社会的課題も浮上しています。
-AIの発展と社会実装を健全に進めるためには、技術開発と並行して、これらの課題に対する議論や制度設計も重要です。多様なステークホルダーが参加する対話の場を設け、AIがもたらす恩恵を最大化しつつ、リスクを最小化する取り組みが求められています。
-"""
-        print(f"元のテキスト（{len(long_text)}文字）:\n{long_text}\n")
-        
-        # 100文字で要約
-        summary_100 = await summarizer.summarize(long_text, 100)
-        print(f"100文字要約（{len(summary_100)}文字）:\n{summary_100}\n")
-        
-        # 200文字で要約
-        summary_200 = await summarizer.summarize(long_text, 200)
-        print(f"200文字要約（{len(summary_200)}文字）:\n{summary_200}")
-        
-    finally:
-        # セッションを閉じる
-        await api.close()
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(test_summarizer())
-
