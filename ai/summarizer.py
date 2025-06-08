@@ -29,8 +29,8 @@ class Summarizer:
         """
         self.api = api
         self.system_instruction = system_instruction or (
-            "あなたは熟練した日本語編集者です。文章の要点を抽出し、必ず日本語だけで簡潔にまとめます。"
-            "英語は使用せず、長文の場合は適度に改行して読みやすくしてください。"
+            "あなたは日本語編集者です。要点を抽出し、日本語のみで短くまとめます。"
+            "長文は読みやすいように適度に改行してください。"
         )
         logger.info("要約機能を初期化しました")
     
@@ -52,25 +52,28 @@ class Summarizer:
             # 要約および翻訳プロンプトの作成
             if summary_type == "title":
                 prompt = (
-                    "以下のタイトルを自然な日本語へ翻訳してください。英語は使わないでください。\n\n"
-                    f"タイトル:\n{text}\n\n翻訳:"
+                    "次のタイトルを日本語に翻訳してください。\n\n"
+                    f"{text}\n\n翻訳:"
                 )
             else:
                 if summary_type == "short":
-                    length_inst = "2〜3文で100文字以内"
+                    prompt = (
+                        "次の文章を日本語で2〜3文、100文字以内で要約してください。\n\n"
+                        f"{text}\n\n要約:"
+                    )
                     max_length = min(max_length, 120)
                 elif summary_type == "long":
-                    length_inst = "詳細に500文字以内"
+                    prompt = (
+                        "次の文章を日本語で詳細に500文字以内で要約してください。読みやすいように適度に改行してください。\n\n"
+                        f"{text}\n\n要約:"
+                    )
                     max_length = min(max_length, 500)
                 else:
-                    length_inst = "200文字以内"
+                    prompt = (
+                        "次の文章を日本語で200文字以内で要約してください。読みやすいように適度に改行してください。\n\n"
+                        f"{text}\n\n要約:"
+                    )
                     max_length = min(max_length, 200)
-
-                prompt = (
-                    "以下の文章を分かりやすく要約してください。"
-                    f"{length_inst}。必ず日本語で書き、長文の場合は読みやすいように適度に改行してください。\n\n"
-                    f"テキスト:\n{text}\n\n要約:"
-                )
             
             # APIを使用して要約
             if isinstance(self.api, GeminiAPI):
@@ -84,7 +87,7 @@ class Summarizer:
                 summary = await self.api.generate_text(prompt, max_tokens=1000, temperature=0.3)
             
             # 余計なプレフィックスを削除
-            prefixes = ["要約:", "要約結果:"]
+            prefixes = ["要約:", "要約結果:", "翻訳:", "翻訳結果:"]
             for prefix in prefixes:
                 if summary.startswith(prefix):
                     summary = summary[len(prefix):].strip()
