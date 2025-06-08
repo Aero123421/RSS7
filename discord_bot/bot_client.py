@@ -10,6 +10,7 @@ Discordとの連携を行う
 import os
 import logging
 import asyncio
+import re
 from typing import Dict, Any, List, Optional
 
 import discord
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 class DiscordBot:
     """Discordボットクラス"""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], ai_processor):
         """
         初期化
         
@@ -33,6 +34,7 @@ class DiscordBot:
             config: 設定辞書
         """
         self.config = config
+        self.ai_processor = ai_processor
         
         # Discordトークンの取得
         self.token = config.get("discord_token") or os.environ.get("DISCORD_TOKEN")
@@ -88,6 +90,24 @@ class DiscordBot:
                     await admin.send(f"新しいサーバー「{guild.name}」に参加しました。")
                 except Exception as e:
                     logger.error(f"管理者通知中にエラーが発生しました: {e}", exc_info=True)
+
+        @self.bot.event
+        async def on_message(message):
+            """メッセージ受信時のイベントハンドラ"""
+            if message.author.bot:
+                return
+            yt_channel = self.config.get("youtube_channel_id")
+            if yt_channel and str(message.channel.id) == str(yt_channel):
+                url = self._extract_youtube_url(message.content)
+                if url:
+                    article = {"title": url, "link": url, "content": url}
+                    processed = await self.ai_processor.process_article(article, {"summary_type": "normal"})
+                    await self.post_article(processed, str(message.channel.id))
+            await self.bot.process_commands(message)
+
+    def _extract_youtube_url(self, text: str) -> Optional[str]:
+        match = re.search(r"https?://(?:www\.)?(?:youtube\.com/watch\?v=[^\s&]+|youtu\.be/[^\s&]+)", text)
+        return match.group(0) if match else None
     
     async def start(self):
         """ボットを起動する"""

@@ -35,11 +35,11 @@ async def main():
         config_manager = ConfigManager()
         config = config_manager.load_config()
         
-        # Discordボットの初期化
-        discord_bot = DiscordBot(config)
-        
         # AIプロセッサーの初期化
         ai_processor = AIProcessor(config)
+
+        # Discordボットの初期化
+        discord_bot = DiscordBot(config, ai_processor)
         
         # フィードマネージャーの初期化
         feed_manager = FeedManager(config, ai_processor, discord_bot)

@@ -225,6 +225,26 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 f"エラーが発生しました: {str(e)}",
                 ephemeral=True
             )
+
+    @app_commands.command(name="yt_channel", description="YouTube要約チャンネルを設定します")
+    @app_commands.describe(channel_name="チャンネル名（省略時はこのチャンネル）")
+    async def yt_channel(interaction: discord.Interaction, channel_name: str = None):
+        """YouTube要約用チャンネルを設定する"""
+        try:
+            channel = interaction.channel
+            if channel_name:
+                ch = discord.utils.get(interaction.guild.text_channels, name=channel_name)
+                if not ch:
+                    await interaction.response.send_message("チャンネルが見つかりません。", ephemeral=True)
+                    return
+                channel = ch
+            config["youtube_channel_id"] = str(channel.id)
+            config_manager.save_config()
+            await interaction.response.send_message(f"YouTube要約チャンネルを {channel.mention} に設定しました。", ephemeral=True)
+        except Exception as e:
+            logger.error(f"YouTubeチャンネル設定中にエラーが発生しました: {e}", exc_info=True)
+            await interaction.response.send_message(f"エラーが発生しました: {str(e)}", ephemeral=True)
+
     
     @rss_group.command(name="list_channels", description="RSSフィードチャンネルの一覧を表示します")
     async def rss_list_channels(interaction: discord.Interaction):
@@ -299,6 +319,8 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
     
     # addrssコマンドをツリーに追加
     bot.tree.add_command(add_rss)
+    # YouTube要約チャンネル設定コマンドを追加
+    bot.tree.add_command(yt_channel)
     
     # コマンドを同期
     guild_id = config.get("guild_id")

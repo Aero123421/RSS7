@@ -251,7 +251,7 @@ Discordボットクライアントを提供するクラスです。
 from discord_bot.bot_client import DiscordBot
 
 # 初期化
-bot = DiscordBot(config)
+bot = DiscordBot(config, ai_processor)
 
 # 起動
 await bot.start()
