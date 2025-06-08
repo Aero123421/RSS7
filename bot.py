@@ -40,9 +40,13 @@ async def main():
 
         # Discordボットの初期化
         discord_bot = DiscordBot(config, ai_processor)
-        
+
         # フィードマネージャーの初期化
         feed_manager = FeedManager(config, ai_processor, discord_bot)
+
+        # ボットからマネージャーへの参照を設定
+        discord_bot.feed_manager = feed_manager
+        discord_bot.config_manager = config_manager
         
         # コマンドマネージャーの設定
         set_managers(feed_manager, config_manager)

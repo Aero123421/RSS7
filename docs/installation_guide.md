@@ -110,10 +110,10 @@ docker-compose up -d
 DISCORD_TOKEN=your_discord_token_here
 
 # Google Gemini API設定（Gemini APIを使用する場合）
-# GEMINI_API_KEYS に gemini1 と gemini2 のキーをカンマ区切りで設定すると、
-# ボットは奇数日と偶数日でキーを切り替えます
-# 例: GEMINI_API_KEYS=gemini_key1,gemini_key2
-GEMINI_API_KEYS=
+# `GEMINI_API_1` と `GEMINI_API_2` にキーを設定すると、
+# ボットは奇数日と偶数日で自動的にキーを切り替えます
+GEMINI_API_1=
+GEMINI_API_2=
 # 1つだけ指定する場合は GEMINI_API_KEY を使用
 # GEMINI_API_KEY=your_gemini_api_key_here
 

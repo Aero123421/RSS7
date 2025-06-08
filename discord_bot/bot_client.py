@@ -35,6 +35,8 @@ class DiscordBot:
         """
         self.config = config
         self.ai_processor = ai_processor
+        self.feed_manager = None
+        self.config_manager = None
         
         # Discordトークンの取得
         self.token = config.get("discord_token") or os.environ.get("DISCORD_TOKEN")
@@ -105,6 +107,22 @@ class DiscordBot:
                     await self.post_article(processed, str(message.channel.id))
             await self.bot.process_commands(message)
 
+        @self.bot.event
+        async def on_guild_channel_delete(channel):
+            """チャンネル削除時のイベントハンドラ"""
+            if not self.feed_manager:
+                return
+            channel_id = str(channel.id)
+            feeds = self.feed_manager.get_feeds()
+            targets = [f.get("url") for f in feeds if f.get("channel_id") == channel_id]
+            if not targets:
+                return
+            for url in targets:
+                await self.feed_manager.remove_feed(url, notify_channel=False)
+            if self.config_manager:
+                self.config_manager.save_config()
+            logger.info(f"チャンネル削除に伴い {len(targets)} 件のフィードを削除しました: {channel_id}")
+
     def _extract_youtube_url(self, text: str) -> Optional[str]:
         match = re.search(r"https?://(?:www\.)?(?:youtube\.com/watch\?v=[^\s&]+|youtu\.be/[^\s&]+)", text)
         return match.group(0) if match else None
@@ -147,6 +165,19 @@ class DiscordBot:
             
         except Exception as e:
             logger.error(f"記事投稿中にエラーが発生しました: {article.get('title')}: {e}", exc_info=True)
+            return False
+
+    async def send_message(self, channel_id: str, content: str) -> bool:
+        """指定したチャンネルにテキストメッセージを送信する"""
+        try:
+            channel = self.bot.get_channel(int(channel_id))
+            if not channel:
+                logger.warning(f"チャンネルが見つかりません: {channel_id}")
+                return False
+            await channel.send(content)
+            return True
+        except Exception as e:
+            logger.error(f"メッセージ送信中にエラーが発生しました: {e}", exc_info=True)
             return False
     
     async def create_feed_channel(self, guild_id: int, feed_info: Dict[str, Any]) -> Optional[str]:
