@@ -76,13 +76,6 @@ class MessageBuilder:
                 # 要約がない場合は内容の先頭部分を表示
                 embed.description = self._truncate_content(content)
             
-            # フィード情報
-            if feed_title:
-                embed.add_field(name="フィード", value=feed_title, inline=True)
-            
-            # 著者情報
-            if author:
-                embed.add_field(name="著者", value=author, inline=True)
             
             # カテゴリ情報（分類されている場合）
             if classified:
@@ -119,15 +112,7 @@ class MessageBuilder:
                 if image_url:
                     embed.set_thumbnail(url=image_url)
             
-            # フッター
-            ai_info = []
-            if summarized:
-                ai_info.append("要約済み")
-            if classified:
-                ai_info.append("分類済み")
-            
-            if ai_info:
-                embed.set_footer(text=f"AI処理: {', '.join(ai_info)}")
+            # フッター（AI処理情報は表示しない）
             
             return embed
             
