@@ -155,6 +155,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
     @app_commands.describe(
         url="RSSフィードのURL",
         channel_name="チャンネル名（省略可）",
+        existing_channel="既存のチャンネル",
         summary_length="要約の長さ"
     )
     @app_commands.choices(summary_length=[
@@ -166,6 +167,7 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
         interaction: discord.Interaction,
         url: str,
         channel_name: str = None,
+        existing_channel: discord.TextChannel = None,
         summary_length: str = "normal",
     ):
         """RSSフィードを追加するコマンド"""
@@ -190,7 +192,9 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
                 return
             
             # チャンネルの作成または指定
-            if channel_name:
+            if existing_channel:
+                channel_id = str(existing_channel.id)
+            elif channel_name:
                 # 既存のチャンネルを検索
                 channel = discord.utils.get(interaction.guild.text_channels, name=channel_name)
                 if not channel:

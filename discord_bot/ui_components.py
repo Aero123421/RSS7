@@ -96,6 +96,11 @@ class ConfigView(ui.View):
         """カテゴリ設定ボタン"""
         # カテゴリ設定モーダルを表示
         await interaction.response.send_modal(CategorySettingsModal(self.config, self.config_manager))
+
+    @ui.button(label="Gemini API追加", style=discord.ButtonStyle.primary, custom_id="gemini_api_add")
+    async def gemini_api_add(self, interaction: discord.Interaction, button: ui.Button):
+        """Gemini APIキー追加ボタン"""
+        await interaction.response.send_modal(GeminiAPIKeyModal(self.config, self.config_manager, self.feed_manager))
     
     @ui.button(label="閉じる", style=discord.ButtonStyle.danger, custom_id="close")
     async def close_button(self, interaction: discord.Interaction, button: ui.Button):
@@ -337,6 +342,37 @@ class CategorySettingsModal(ui.Modal, title="カテゴリ設定"):
                 ephemeral=True
             )
 
+
+class GeminiAPIKeyModal(ui.Modal, title="Gemini APIキー追加"):
+    """Gemini APIキー追加モーダル"""
+
+    def __init__(self, config: Dict[str, Any], config_manager, feed_manager):
+        super().__init__()
+        self.config = config
+        self.config_manager = config_manager
+        self.feed_manager = feed_manager
+
+        self.key_input = ui.TextInput(label="APIキー", placeholder="AIza...")
+        self.add_item(self.key_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        key = self.key_input.value.strip()
+        if not key:
+            await interaction.response.send_message("APIキーが入力されていません", ephemeral=True)
+            return
+        keys = self.config.get("gemini_api_keys", [])
+        if key not in keys:
+            keys.insert(0, key)
+            self.config["gemini_api_keys"] = keys
+            self.config_manager.update_config(self.config)
+            try:
+                await self.feed_manager.ai_processor.api.close()
+            except Exception:
+                pass
+            from ai.ai_processor import AIProcessor
+            self.feed_manager.ai_processor = AIProcessor(self.feed_manager.config)
+        await interaction.response.send_message("Gemini APIキーを追加しました", ephemeral=True)
+
 class FeedListView(ui.View):
     """フィードリストビュー"""
     
@@ -359,12 +395,24 @@ class FeedListView(ui.View):
         # フィード選択メニューの追加
         if feeds:
             self.add_item(FeedSelect(feeds))
-    
+
     @ui.button(label="フィード追加", style=discord.ButtonStyle.success, custom_id="add_feed")
     async def add_feed(self, interaction: discord.Interaction, button: ui.Button):
         """フィード追加ボタン"""
         # フィード追加モーダルを表示
         await interaction.response.send_modal(AddFeedModal(self.config, self.config_manager, self.feed_manager))
+
+    @ui.button(label="フィード削除", style=discord.ButtonStyle.danger, custom_id="remove_feed")
+    async def remove_feed(self, interaction: discord.Interaction, button: ui.Button):
+        """フィード削除ボタン"""
+        view = FeedRemoveView(self.feeds, self.config_manager, self.feed_manager)
+        await interaction.response.send_message("削除するフィードを選択してください", view=view, ephemeral=True)
+
+    @ui.button(label="チャンネル削除", style=discord.ButtonStyle.danger, custom_id="delete_channel")
+    async def delete_channel(self, interaction: discord.Interaction, button: ui.Button):
+        """チャンネル削除ボタン"""
+        view = ChannelDeleteView(self.feeds, interaction.guild)
+        await interaction.response.send_message("削除するチャンネルを選択してください", view=view, ephemeral=True)
     
     
     @ui.button(label="閉じる", style=discord.ButtonStyle.secondary, custom_id="close")
@@ -696,4 +744,73 @@ class ChannelSelect(ui.Select):
         
         # 応答を送信
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class FeedRemoveView(ui.View):
+    """フィード削除用ビュー"""
+
+    def __init__(self, feeds: List[Dict[str, Any]], config_manager, feed_manager):
+        super().__init__(timeout=300)
+        self.add_item(RemoveFeedSelect(feeds, config_manager, feed_manager))
+
+
+class RemoveFeedSelect(ui.Select):
+    """フィード削除選択メニュー"""
+
+    def __init__(self, feeds: List[Dict[str, Any]], config_manager, feed_manager):
+        self.feeds = feeds
+        self.config_manager = config_manager
+        self.feed_manager = feed_manager
+
+        options = []
+        for feed in feeds[:25]:
+            title = feed.get("title", "Unknown Feed")
+            options.append(discord.SelectOption(label=title[:100], value=feed.get("url")))
+
+        super().__init__(placeholder="削除するフィードを選択", options=options, custom_id="remove_feed_select")
+
+    async def callback(self, interaction: discord.Interaction):
+        url = self.values[0]
+        success, message = await self.feed_manager.remove_feed(url)
+        if success:
+            self.config_manager.save_config()
+        await interaction.response.send_message(message, ephemeral=True)
+
+
+class ChannelDeleteView(ui.View):
+    """チャンネル削除用ビュー"""
+
+    def __init__(self, feeds: List[Dict[str, Any]], guild: discord.Guild):
+        super().__init__(timeout=300)
+        self.add_item(RemoveChannelSelect(feeds, guild))
+
+
+class RemoveChannelSelect(ui.Select):
+    """チャンネル削除選択メニュー"""
+
+    def __init__(self, feeds: List[Dict[str, Any]], guild: discord.Guild):
+        self.guild = guild
+        channels: Dict[str, List[Dict[str, Any]]] = {}
+        for feed in feeds:
+            cid = feed.get("channel_id")
+            if cid:
+                channels.setdefault(cid, []).append(feed)
+
+        options = []
+        for cid in list(channels.keys())[:25]:
+            channel = guild.get_channel(int(cid))
+            name = f"#{channel.name}" if channel else cid
+            options.append(discord.SelectOption(label=name, value=cid))
+
+        self.channels = channels
+        super().__init__(placeholder="削除するチャンネルを選択", options=options, custom_id="remove_channel_select")
+
+    async def callback(self, interaction: discord.Interaction):
+        cid = self.values[0]
+        channel = self.guild.get_channel(int(cid))
+        if channel:
+            await channel.delete()
+            await interaction.response.send_message(f"チャンネル {channel.mention} を削除しました。", ephemeral=True)
+        else:
+            await interaction.response.send_message("チャンネルが見つかりません。", ephemeral=True)
 

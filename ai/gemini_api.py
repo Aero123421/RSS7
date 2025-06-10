@@ -30,30 +30,26 @@ class GeminiAPI:
             api_key: Google Gemini API Key（指定がない場合は環境変数から取得）
             model: 使用するモデル名
         """
-        if api_keys:
-            self.api_keys = [k for k in api_keys if k]
-        else:
-            self.api_keys = []
+        self.api_keys = [k for k in (api_keys or []) if k]
 
         if api_key:
-            self.api_keys = [api_key] + [k for k in self.api_keys if k != api_key]
+            if api_key not in self.api_keys:
+                self.api_keys.insert(0, api_key)
 
-        if not self.api_keys:
-            env_keys = []
-            if os.environ.get("GEMINI_API_1") or os.environ.get("GEMINI_API_2"):
-                if os.environ.get("GEMINI_API_1"):
-                    env_keys.append(os.environ.get("GEMINI_API_1"))
-                if os.environ.get("GEMINI_API_2"):
-                    env_keys.append(os.environ.get("GEMINI_API_2"))
-            elif os.environ.get("GEMINI_API_KEYS"):
-                env_keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
+        env_keys = []
+        if os.environ.get("GEMINI_API_1") or os.environ.get("GEMINI_API_2"):
+            if os.environ.get("GEMINI_API_1"):
+                env_keys.append(os.environ.get("GEMINI_API_1"))
+            if os.environ.get("GEMINI_API_2"):
+                env_keys.append(os.environ.get("GEMINI_API_2"))
+        elif os.environ.get("GEMINI_API_KEYS"):
+            env_keys = [k.strip() for k in os.environ.get("GEMINI_API_KEYS").split(',') if k.strip()]
+        elif os.environ.get("GEMINI_API_KEY"):
+            env_keys.append(os.environ.get("GEMINI_API_KEY"))
 
-            if env_keys:
-                self.api_keys = env_keys
-            else:
-                env_key = os.environ.get("GEMINI_API_KEY")
-                if env_key:
-                    self.api_keys = [env_key]
+        for key in env_keys:
+            if key not in self.api_keys:
+                self.api_keys.append(key)
 
         if self.api_keys:
             from utils.helpers import select_gemini_api_key
