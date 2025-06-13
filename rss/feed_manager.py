@@ -57,7 +57,12 @@ class FeedManager:
                 processed = await self.ai_processor.process_article(article, feed)
                 message_id = await self.discord_bot.post_article(processed, channel_id)
                 if message_id:
-                    await self.article_store.add_full_article(str(message_id), channel_id, article)
+                    await self.article_store.add_full_article(
+                        str(message_id),
+                        channel_id,
+                        article,
+                        processed.get("keywords_en", ""),
+                    )
                 article_id = generate_article_id(article)
                 await self.article_store.add_processed_article(article_id, url, channel_id)
             except Exception as e:

@@ -59,7 +59,8 @@ class ArticleStore:
                     title TEXT,
                     content TEXT,
                     feed_url TEXT,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    keywords_en TEXT
                 )
             ''')
 
@@ -275,7 +276,14 @@ class ArticleStore:
         finally:
             conn.close()
 
-    async def add_full_article(self, message_id: str, channel_id: str, article: Dict[str, Any], limit: int = 1000) -> bool:
+    async def add_full_article(
+        self,
+        message_id: str,
+        channel_id: str,
+        article: Dict[str, Any],
+        keywords_en: str,
+        limit: int = 1000,
+    ) -> bool:
         """記事全文を保存する"""
         async with self.lock:
             try:
@@ -283,19 +291,29 @@ class ArticleStore:
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(
                     None,
-                    lambda: self._add_full_article(message_id, channel_id, article, now, limit),
+                    lambda: self._add_full_article(
+                        message_id, channel_id, article, keywords_en, now, limit
+                    ),
                 )
                 return True
             except Exception as e:
                 logger.error(f"記事全文の保存中にエラーが発生しました: {e}", exc_info=True)
                 return False
 
-    def _add_full_article(self, message_id: str, channel_id: str, article: Dict[str, Any], created_at: str, limit: int) -> None:
+    def _add_full_article(
+        self,
+        message_id: str,
+        channel_id: str,
+        article: Dict[str, Any],
+        keywords_en: str,
+        created_at: str,
+        limit: int,
+    ) -> None:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         try:
             cursor.execute(
-                'INSERT OR REPLACE INTO articles (message_id, channel_id, title, content, feed_url, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT OR REPLACE INTO articles (message_id, channel_id, title, content, feed_url, created_at, keywords_en) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 (
                     message_id,
                     channel_id,
@@ -303,6 +321,7 @@ class ArticleStore:
                     article.get("content"),
                     article.get("feed_url"),
                     created_at,
+                    keywords_en,
                 ),
             )
             conn.commit()
@@ -337,6 +356,45 @@ class ArticleStore:
             cursor.execute('SELECT * FROM articles WHERE message_id = ?', (message_id,))
             row = cursor.fetchone()
             return dict(row) if row else None
+        finally:
+            conn.close()
+
+    async def find_related_articles(
+        self, keywords: List[str], original_article_id: str, limit: int = 15
+    ) -> List[Dict[str, Any]]:
+        """キーワードで関連記事を検索する"""
+        async with self.lock:
+            try:
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(
+                    None,
+                    lambda: self._find_related_articles(
+                        keywords, original_article_id, limit
+                    ),
+                )
+            except Exception as e:
+                logger.error(f"関連記事検索中にエラーが発生しました: {e}", exc_info=True)
+                return []
+
+    def _find_related_articles(
+        self, keywords: List[str], original_article_id: str, limit: int
+    ) -> List[Dict[str, Any]]:
+        if not keywords:
+            return []
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        try:
+            like_clauses = " OR ".join(["keywords_en LIKE ?" for _ in keywords])
+            params = [f"%{kw}%" for kw in keywords]
+            query = (
+                "SELECT * FROM articles WHERE message_id != ? AND ("
+                + like_clauses
+                + ") ORDER BY created_at DESC LIMIT ?"
+            )
+            cursor.execute(query, [original_article_id, *params, limit])
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
         finally:
             conn.close()
 
