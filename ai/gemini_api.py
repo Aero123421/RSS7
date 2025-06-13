@@ -14,8 +14,8 @@ from typing import Optional, List
 
 from google.api_core import exceptions as google_exceptions
 
-from google import genai
-from google.genai import types as genai_types
+import google.generativeai as genai
+from google.generativeai import types as genai_types
 
 logger = logging.getLogger(__name__)
 
