@@ -14,8 +14,8 @@ from typing import Optional, List
 
 from google.api_core import exceptions as google_exceptions
 
-import google.generativeai as genai
-from google.generativeai.types import GenerationConfig
+from google import genai
+from google.genai import types as genai_types
 
 logger = logging.getLogger(__name__)
 
@@ -64,17 +64,16 @@ class GeminiAPI:
 
         self.model_name = model if model.startswith("models/") else f"models/{model}"
 
-        self._configure_model()
+        self._configure_client()
 
         logger.info("Google Gemini APIを初期化しました")
 
-    def _configure_model(self):
-        """Configure the Gemini client with the current API key"""
+    def _configure_client(self):
+        """APIキーに基づきクライアントを構成する"""
         if self.api_key:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(self.model_name)
+            self.client = genai.Client(api_key=self.api_key)
         else:
-            self.model = None
+            self.client = genai.Client()
 
     def _switch_api_key(self):
         """Switch to the next API key in the list"""
@@ -83,7 +82,7 @@ class GeminiAPI:
         self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
         self.api_key = self.api_keys[self.current_key_index]
         logger.info(f"APIキーを切り替えました: index={self.current_key_index}")
-        self._configure_model()
+        self._configure_client()
 
     def _is_rate_limit_error(self, error: Exception) -> bool:
         if isinstance(error, (google_exceptions.TooManyRequests, google_exceptions.ResourceExhausted)):
@@ -117,30 +116,23 @@ class GeminiAPI:
         consecutive_limits = 0
         while True:
             try:
-                generation_config = GenerationConfig(
+                config = genai_types.GenerateContentConfig(
                     max_output_tokens=max_tokens,
                     temperature=temperature,
                     top_p=top_p,
                     top_k=top_k,
                     candidate_count=1,
+                    system_instruction=[system_instruction] if system_instruction else None,
                 )
 
-                model = self.model
-                if system_instruction:
-                    model = genai.GenerativeModel(
-                        self.model_name,
-                        system_instruction=system_instruction,
-                        generation_config=generation_config,
-                    )
-                    generation_config = None
-
-                response = await model.generate_content_async(
-                    prompt,
-                    generation_config=generation_config,
+                response = await self.client.aio.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=config,
                 )
 
                 if response.candidates:
-                    text = response.candidates[0].content.parts[0].text
+                    text = response.candidates[0].text
                     return text.strip() if text else ""
 
                 logger.warning(f"APIレスポンスに有効な結果がありません: {response}")

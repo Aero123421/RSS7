@@ -107,7 +107,12 @@ async def register_commands(bot: commands.Bot, config: Dict[str, Any]):
             processed = await feed_manager.ai_processor.process_article(entry, feed)
             msg_id = await feed_manager.discord_bot.post_article(processed, channel_id)
             if msg_id:
-                await feed_manager.article_store.add_full_article(str(msg_id), channel_id, entry)
+                await feed_manager.article_store.add_full_article(
+                    str(msg_id),
+                    channel_id,
+                    entry,
+                    processed.get("keywords_en", ""),
+                )
             await interaction.followup.send("記事を投稿しました。", ephemeral=True)
         except Exception as e:
             logger.error(f"フィード確認中にエラーが発生しました: {e}", exc_info=True)

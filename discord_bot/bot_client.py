@@ -109,9 +109,11 @@ class DiscordBot:
                 ref = None
 
             if ref and ref.author.id == self.bot.user.id:
-                article = await self.feed_manager.article_store.get_full_article(str(ref.id))
-                if article:
-                    answer = await self.ai_processor.answer_question(article, message.content)
+                original_article = await self.feed_manager.article_store.get_full_article(str(ref.id))
+                if original_article:
+                    keywords = await self.ai_processor._generate_search_keywords(original_article, message.content)
+                    related_articles = await self.feed_manager.article_store.find_related_articles(keywords, str(ref.id))
+                    answer = await self.ai_processor.answer_question(original_article, related_articles, message.content)
                     await message.reply(answer)
                     return
 

@@ -49,6 +49,22 @@ class AIProcessor:
         selected_model = model or "gemini-2.0-flash"
         logger.info(f"Google Gemini APIを使用します: {selected_model}")
         return GeminiAPI(api_key, model=selected_model, api_keys=keys)
+
+    async def extract_keywords_for_storage(self, article: Dict[str, Any]) -> str:
+        """記事から検索用キーワードを抽出する"""
+        title = article.get("title", "")
+        content = article.get("content", "")
+        prompt = (
+            "You are a data indexer. Analyze the following article and extract the 5-7 most important and representative keywords in English. "
+            "The keywords should be suitable for later searching. Output them as a single, comma-separated string.\n\n"
+            f"Title: {title}\n\nContent:\n{content}"
+        )
+        try:
+            text = await self.api.generate_text(prompt, max_tokens=50, temperature=0.3)
+            return text.strip()
+        except Exception as e:
+            logger.error(f"キーワード抽出中にエラーが発生しました: {e}", exc_info=True)
+            return ""
     
     async def process_article(self, article: Dict[str, Any], feed_info: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -62,7 +78,7 @@ class AIProcessor:
             処理済み記事データ
         """
         processed = article.copy()
-        
+
         try:
             # 要約（翻訳を兼ねる）
             if self.config.get("summarize", True):
@@ -71,14 +87,18 @@ class AIProcessor:
                 except Exception as e:
                     logger.warning(f"要約に失敗しました: {e}")
                     processed["summarized"] = False
-            
+
             # ジャンル分類
             if self.config.get("classify", False):
                 processed = await self._classify_article(processed)
-            
+
+            # 検索用キーワード抽出
+            keywords_en = await self.extract_keywords_for_storage(processed)
+            processed["keywords_en"] = keywords_en
+
             # 処理フラグを追加
             processed["ai_processed"] = True
-            
+
             return processed
             
         except Exception as e:
@@ -165,16 +185,50 @@ class AIProcessor:
             article["category"] = "other"  # デフォルトカテゴリ
             return article
 
-    async def answer_question(self, article: Dict[str, Any], question: str) -> str:
-        """記事内容を元に質問に回答する"""
-        content = article.get("content", "")
-        title = article.get("title", "")
+    async def _generate_search_keywords(
+        self, original_article: Dict[str, Any], question: str
+    ) -> List[str]:
+        """質問と記事から検索用キーワードを生成する"""
+        title = original_article.get("title", "")
+        content = original_article.get("content", "")
         prompt = (
-            "あなたはニュース解説者です。以下の記事内容に基づいて質問に日本語で答えてください。\n\n"
-            f"タイトル: {title}\n\n本文:\n{content}\n\n質問: {question}\n\n回答:"
+            "You are a search query expert. Extract up to 5 important English keywords from the user's question and the original article to find related information."\
+            f"\n\nTitle: {title}\n\nContent:\n{content}\n\nQuestion: {question}\n\nKeywords:"
         )
         try:
-            return await self.api.generate_text(prompt, max_tokens=1000, temperature=0.3)
+            text = await self.api.generate_text(prompt, max_tokens=30, temperature=0.3)
+            keywords = [k.strip() for k in text.replace("\n", "").split(",") if k.strip()]
+            return keywords[:5]
+        except Exception as e:
+            logger.error(f"検索用キーワード生成中にエラーが発生しました: {e}", exc_info=True)
+            return []
+
+    async def answer_question(
+        self,
+        original_article: Dict[str, Any],
+        related_articles: List[Dict[str, Any]],
+        question: str,
+    ) -> str:
+        """元記事と関連記事を基に質問に回答する"""
+        main_title = original_article.get("title", "")
+        main_content = original_article.get("content", "")
+
+        related_parts = []
+        for i, art in enumerate(related_articles, 1):
+            title = art.get("title", "")
+            content = (art.get("content", "") or "")[:600]
+            related_parts.append(f"{i}. Title: {title}\n   Content: {content}...")
+        related_block = "\n".join(related_parts)
+
+        prompt = (
+            "You are an expert news commentator. Based on the following articles, please answer the user's question in Japanese.\n\n"
+            f"**Main Article:**\nTitle: {main_title}\nContent: {main_content}\n\n"
+            f"**Related Articles:**\n{related_block}\n\n"
+            f"**User's Question:**\n{question}\n\n**Answer (in Japanese):**"
+        )
+        try:
+            api = self._create_api("gemini-2.5-flash")
+            return await api.generate_text(prompt, max_tokens=1000, temperature=0.3)
         except Exception as e:
             logger.error(f"回答生成中にエラーが発生しました: {e}", exc_info=True)
             return "回答を生成できませんでした。"
