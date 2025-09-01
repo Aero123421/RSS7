@@ -16,9 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションのコピー
 COPY . .
 
-# 実行権限の付与
-RUN chmod +x bot.py
-
 # コンテナ起動時のコマンド
-CMD ["python", "bot.py"]
+CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]
 

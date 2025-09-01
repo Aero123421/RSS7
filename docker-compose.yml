@@ -1,9 +1,11 @@
-version: '3'
+version: '3.8'
 
 services:
-  discord-rss-bot:
-    build: .
-    container_name: discord-rss-bot
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: discord-rss-api
     restart: unless-stopped
     volumes:
       - ./data:/app/data
@@ -11,9 +13,26 @@ services:
       - .env
     environment:
       - TZ=Asia/Tokyo
+    ports:
+      - "8000:8000" # Expose API port for local testing/debugging
     networks:
       - bot-network
-  #     - bot-network
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    container_name: discord-rss-bot
+    restart: unless-stopped
+    depends_on:
+      - api
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Tokyo
+      - API_BASE_URL=http://api:8000/api
+    networks:
+      - bot-network
 
 networks:
   bot-network:
