@@ -1,10 +1,12 @@
 # Dependencies
 /node_modules
+/.venv
 
 # Python
 __pycache__/
 *.pyc
 .env
+.pytest_cache/
 
 # Build artifacts
 dist/
@@ -19,3 +21,6 @@ yarn-error.log*
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Project data
+data/
