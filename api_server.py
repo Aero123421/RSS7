@@ -16,6 +16,7 @@ from typing import Dict, Any, List, Optional
 import uvicorn
 from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # 内部モジュールのインポート
 from config.config_manager import ConfigManager
@@ -40,23 +41,6 @@ app = FastAPI(
 # アプリケーションの生存期間中に維持されるオブジェクト
 app_state: Dict[str, Any] = {}
 
-# --- ダミークラス ---
-# FeedManagerの初期化に必要なため
-class DummyDiscordBot:
-    """FeedManagerの初期化に使用するダミーのDiscordBotクラス"""
-    def __init__(self, config, ai_processor):
-        self.config = config
-        self.ai_processor = ai_processor
-        self.user = None # bot.user.id のような参照に対応するため
-
-    async def post_article(self, article: Dict[str, Any], channel_id: str) -> Optional[int]:
-        logger.info(f"[DummyBot] Post article to {channel_id}: {article.get('title')}")
-        return 1 # ダミーのメッセージIDを返す
-
-    async def create_feed_channel(self, guild_id: int, feed_info: Dict[str, Any], channel_name: Optional[str] = None) -> Optional[str]:
-        logger.info(f"[DummyBot] Create channel '{channel_name}' in guild {guild_id} for feed: {feed_info.get('title')}")
-        return "1234567890" # ダミーのチャンネルIDを返す
-
 # --- イベントハンドラ ---
 @app.on_event("startup")
 async def startup_event():
@@ -73,20 +57,30 @@ async def startup_event():
         ai_processor = AIProcessor(config)
         app_state["ai_processor"] = ai_processor
 
-        # ダミーDiscordボットの初期化
-        dummy_bot = DummyDiscordBot(config, ai_processor)
-
         # フィードマネージャーの初期化
-        feed_manager = FeedManager(config, ai_processor, dummy_bot)
-        feed_manager.start_worker() # バックグラウンドでのフィードチェックを開始
+        feed_manager = FeedManager(config, ai_processor)
         app_state["feed_manager"] = feed_manager
 
-        logger.info("APIサーバーの初期化が完了しました。")
+        # スケジューラーのセットアップ
+        scheduler = AsyncIOScheduler(timezone="UTC")
+        check_interval = config.get("check_interval", 15)
+        scheduler.add_job(feed_manager.check_feeds, "interval", minutes=check_interval)
+        scheduler.start()
+        app_state["scheduler"] = scheduler
+
+        logger.info(f"APIサーバーの初期化が完了しました。フィードは{check_interval}分ごとに確認されます。")
 
     except Exception as e:
         logger.error(f"起動中にエラーが発生しました: {e}", exc_info=True)
-        # ここでアプリケーションを停止させるか、エラー状態を示すフラグを立てる
-        # 今回はログ出力に留める
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """アプリケーション終了時に実行される"""
+    logger.info("APIサーバーをシャットダウンしています...")
+    scheduler = app_state.get("scheduler")
+    if scheduler and scheduler.running:
+        scheduler.shutdown()
+    logger.info("スケジューラーを停止しました。")
 
 # --- ルートエンドポイント ---
 @app.get("/")
@@ -112,6 +106,12 @@ class FeedCheckNow(BaseModel):
 class QARequest(BaseModel):
     original_message_id: str
     question: str
+
+class ArticleAssociate(BaseModel):
+    message_id: str
+    channel_id: str
+    original_article: Dict[str, Any]
+    keywords_en: str
 
 # --- APIエンドポイントの実装 ---
 
@@ -195,23 +195,48 @@ async def check_feed_now(check_data: FeedCheckNow):
         raise HTTPException(status_code=404, detail="このチャンネルにフィードが登録されていません。")
 
     try:
-        feed_data = await feed_manager.feed_parser.parse_feed(feed.get("url"))
-        if not feed_data or not feed_data.get("entries"):
-            raise HTTPException(status_code=404, detail="記事を取得できませんでした。")
+        # このコマンドは手動実行用なので、即時処理して結果を返す
+        # 定期実行とは異なり、キューには入れない
+        await feed_manager.check_feed(feed)
 
-        entry = feed_data["entries"][0]
-        entry["feed_title"] = feed_data.get("feed", {}).get("title", "")
-        entry["feed_url"] = feed.get("url")
-
-        processed = await feed_manager.ai_processor.process_article(entry, feed)
-
-        # post_articleはダミーなので、実際には投稿されない
-        # Node側で投稿処理を行うため、ここでは処理済みの記事データを返す
-        return {"message": "記事を処理しました。", "article": processed}
+        # キューから最新のものを取得して返す（このチャンネル向けである保証はないが、高確率でそう）
+        if feed_manager.articles_to_post:
+            # Note: This is not guaranteed to be for the requested channel, but likely is.
+            # A more robust solution might be needed if this is a problem.
+            article_data = feed_manager.articles_to_post.popleft()
+            return {"message": "記事を処理しました。", "article_data": article_data}
+        else:
+            return {"message": "新しい記事は見つかりませんでした。"}
 
     except Exception as e:
         logger.error(f"フィード確認中にAPIエラー: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+# Article Endpoints
+@app.get("/api/articles-to-post", summary="投稿待ちの記事を取得")
+async def get_article_to_post():
+    """投稿を待っている記事のキューから記事を1つ取得します"""
+    feed_manager = app_state["feed_manager"]
+    if feed_manager.articles_to_post:
+        article_data = feed_manager.articles_to_post.popleft()
+        return article_data
+    return None
+
+@app.post("/api/articles/associate", summary="投稿済み記事を紐付け")
+async def associate_article(association_data: ArticleAssociate):
+    """Discordへの投稿後、メッセージIDと記事データを紐付けて保存します"""
+    feed_manager = app_state["feed_manager"]
+    try:
+        await feed_manager.article_store.add_full_article(
+            message_id=association_data.message_id,
+            channel_id=association_data.channel_id,
+            article=association_data.original_article,
+            keywords_en=association_data.keywords_en,
+        )
+        return {"message": "Article associated successfully"}
+    except Exception as e:
+        logger.error(f"記事の紐付け中にエラー: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to associate article")
 
 # Q&A Endpoint
 @app.post("/api/qa", summary="質問応答")

@@ -170,11 +170,19 @@ class AIProcessor:
             category_names = [cat.get("name") for cat in categories]
             
             # ジャンル分類
-            category = await self.classifier.classify(title, content, category_names)
+            category_name = await self.classifier.classify(title, content, category_names)
             
             # 分類結果を記事に追加
-            article["category"] = category
+            article["category"] = category_name
             article["classified"] = True
+
+            # カテゴリ情報を取得して追加
+            category_info = next((cat for cat in categories if cat.get("name") == category_name), None)
+            if category_info:
+                article["category_info"] = category_info
+            else:
+                # デフォルトカテゴリ情報
+                article["category_info"] = {"name": "other", "jp_name": "その他", "emoji": "📌"}
             
             logger.info(f"記事を分類しました: {article.get('title')} -> {category}")
             return article

@@ -10,7 +10,8 @@ RSSフィードの管理と監視を行う
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
+from collections import deque
 
 from .feed_parser import FeedParser
 from .article_store import ArticleStore
@@ -20,56 +21,23 @@ logger = logging.getLogger(__name__)
 
 class FeedManager:
     """フィード管理クラス"""
-    
-    def __init__(self, config: Dict[str, Any], ai_processor: Any, discord_bot: Any):
+
+    def __init__(self, config: Dict[str, Any], ai_processor: Any):
         """
         初期化
         
         Args:
             config: 設定辞書
             ai_processor: AIプロセッサーインスタンス
-            discord_bot: Discordボットインスタンス
         """
         self.config = config
         self.ai_processor = ai_processor
-        self.discord_bot = discord_bot
         self.feed_parser = FeedParser()
         self.article_store = ArticleStore()
         self.checking = False  # フィード確認中フラグ
-        self.article_queue: asyncio.Queue[Tuple[Dict[str, Any], Dict[str, Any]]] = asyncio.Queue()
-        self.worker_task: Optional[asyncio.Task] = None
+        self.articles_to_post: deque = deque()
 
         logger.info("フィードマネージャーを初期化しました")
-
-    def start_worker(self) -> None:
-        """記事処理用ワーカーを開始する"""
-        if not self.worker_task:
-            self.worker_task = asyncio.create_task(self._queue_worker())
-            logger.info("記事処理ワーカーを開始しました")
-
-    async def _queue_worker(self) -> None:
-        """キュー内の記事を順番に処理する"""
-        while True:
-            article, feed = await self.article_queue.get()
-            try:
-                channel_id = feed.get("channel_id")
-                url = feed.get("url")
-                processed = await self.ai_processor.process_article(article, feed)
-                message_id = await self.discord_bot.post_article(processed, channel_id)
-                if message_id:
-                    await self.article_store.add_full_article(
-                        str(message_id),
-                        channel_id,
-                        article,
-                        processed.get("keywords_en", ""),
-                    )
-                article_id = generate_article_id(article)
-                await self.article_store.add_processed_article(article_id, url, channel_id)
-            except Exception as e:
-                logger.error(f"キュー処理中にエラーが発生しました: {e}", exc_info=True)
-            finally:
-                await asyncio.sleep(10)
-                self.article_queue.task_done()
     
     async def check_feeds(self) -> None:
         """すべてのフィードを確認する"""
@@ -138,9 +106,26 @@ class FeedManager:
             logger.info(f"処理数を{max_articles}件に制限します")
             new_articles = new_articles[:max_articles]
         
-        # 記事をキューに追加
+        # 記事を処理して投稿キューに追加
         for article in new_articles:
-            await self.article_queue.put((article, feed))
+            try:
+                processed = await self.ai_processor.process_article(article, feed)
+
+                # discord.js側で元の記事情報が必要になるため、ここで含める
+                processed['_original_article'] = article
+
+                # 処理済み記事をキューに追加
+                self.articles_to_post.append({
+                    "processed_article": processed,
+                    "channel_id": channel_id
+                })
+
+                # 重複投稿を防ぐために、処理済み記事IDを保存
+                article_id = generate_article_id(article)
+                await self.article_store.add_processed_article(article_id, url, channel_id)
+
+            except Exception as e:
+                logger.error(f"記事処理中にエラーが発生しました: {article.get('title')}: {e}", exc_info=True)
     
     async def _get_new_articles(self, feed_data: Dict[str, Any], feed_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -272,13 +257,7 @@ class FeedManager:
                     removed_feed = feeds.pop(i)
                     self.config["feeds"] = feeds
 
-                    channel_id = removed_feed.get("channel_id")
-                    if notify_channel and channel_id:
-                        await self.discord_bot.send_message(
-                            channel_id,
-                            "このRSSフィードは削除されました。不要であればチャンネルを削除してください。",
-                        )
-
+                    # discord.js側で通知を行うため、ここではメッセージを返すだけ
                     return True, f"フィード「{removed_feed.get('title', url)}」を削除しました"
             
             return False, "指定されたフィードが見つかりません"

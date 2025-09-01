@@ -44,37 +44,13 @@ Discord RSS Botは、RSS/atomフィードを定期的に監視し、取得した
 
 ## 必要条件
 
-- Python 3.8以上
+- Docker と Docker Compose
 - Discordアカウントとボットトークン
 - （任意）Google Gemini APIキー
 
 ## クイックスタート
 
-### 通常インストール
-
-```bash
-# リポジトリのクローン
-git clone https://github.com/yourusername/discord-rss-bot.git
-cd discord-rss-bot
-
-# 仮想環境のセットアップ
-python -m venv venv
-source venv/bin/activate  # Linux
-# or
-venv\Scripts\activate    # Windows
-
-# 依存パッケージのインストール
-pip install -r requirements.txt
-
-# 環境変数の設定
-cp .env.example .env
-# .envを編集してDiscordトークンなどを指定
-
-# ボットの起動
-python bot.py
-```
-
-### Docker環境でのインストール
+プロジェクトの実行はDocker Composeで行うのが最も簡単です。
 
 ```bash
 # リポジトリのクローン
@@ -83,10 +59,19 @@ cd discord-rss-bot
 
 # 環境変数の設定
 cp .env.example .env
-# .envを編集してDiscordトークンなどを指定
+# .envを編集してDiscordトークンなどを指定してください
+# 必須項目: DISCORD_TOKEN, GUILD_ID, CLIENT_ID
 
-docker-compose up -d
+# スラッシュコマンドの登録
+# 初回起動時やコマンドを追加・変更した際に一度だけ実行します
+npm install
+npm run deploy
+
+# ボットとAPIサーバーの起動
+docker-compose up -d --build
 ```
+
+コンテナを停止するには `docker-compose down` を実行します。
 
 ## ドキュメント
 
@@ -138,7 +123,8 @@ docker-compose up -d
 
 ## 謝辞
 
-- [discord.py](https://github.com/Rapptz/discord.py)
+- [discord.js](https://discord.js.org/)
+- [FastAPI](https://fastapi.tiangolo.com/)
 - [feedparser](https://github.com/kurtmckee/feedparser)
 - [APScheduler](https://github.com/agronholm/apscheduler)
 - [Google Generative AI](https://github.com/google/generative-ai-python)
