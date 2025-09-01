@@ -1,4 +1,4 @@
-# RSS7 Discord Bot
+#  Discord Bot
 
 RSS/Atom フィードを監視し、取得した記事を AI で処理して Discord に投稿するボットです。
 
